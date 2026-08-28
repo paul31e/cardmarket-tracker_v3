@@ -1,16 +1,16 @@
 {
   "products": [
     {
-      "name": "Pokemon 151 Booster Display",
-      "url": "https://www.cardmarket.com/de/Pokemon/Products/Booster-Boxes/Scarlet-Violet-151-Booster-Box",
+      "name": "Pokemon Destined Rivals Booster Display (Eng)",
+      "url": "https://www.cardmarket.com/de/Pokemon/Products/Booster-Boxes/Destined-Rivals-Booster-Box?language=1",
       "type": "single",
-      "target_price": 160.00
+      "target_price": 340
     },
     {
-      "name": "Pokemon 151 Case (6 Displays)",
-      "url": "https://www.cardmarket.com/de/Pokemon/Products/Booster-Cases/Scarlet-Violet-151-Booster-Case",
+      "name": "Pokemon Destined Rivals Booster Display Case (Eng)",
+      "url": "https://www.cardmarket.com/de/Pokemon/Products/Booster-Boxes/Destined-Rivals-6-Booster-Box-Case?language=1",
       "type": "case",
-      "target_price": 950.00
+      "target_price": 2200
     }
   ]
 }
