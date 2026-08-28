@@ -1,0 +1,16 @@
+{
+  "products": [
+    {
+      "name": "Pokemon 151 Booster Display",
+      "url": "https://www.cardmarket.com/de/Pokemon/Products/Booster-Boxes/Scarlet-Violet-151-Booster-Box",
+      "type": "single",
+      "target_price": 160.00
+    },
+    {
+      "name": "Pokemon 151 Case (6 Displays)",
+      "url": "https://www.cardmarket.com/de/Pokemon/Products/Booster-Cases/Scarlet-Violet-151-Booster-Case",
+      "type": "case",
+      "target_price": 950.00
+    }
+  ]
+}
