@@ -25,8 +25,8 @@ jobs:
 
       - name: Run Scraper
         env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.BOTFATHER }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAMCHATID }}
         run: python scraper.py
 
       - name: Commit and Push Data
