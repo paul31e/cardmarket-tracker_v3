@@ -12,6 +12,12 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Setup Tor
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tor
+          sudo systemctl start tor
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -19,13 +25,13 @@ jobs:
           cache: 'pip'
 
       - name: Install Dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install requests[socks] beautifulsoup4 pandas streamlit plotly curl_cffi
 
       - name: Run Scraper
         env:
           BOTFATHER: ${{ secrets.BOTFATHER }}
           TELEGRAMCHATID: ${{ secrets.TELEGRAMCHATID }}
-          SCRAPEOPS_API_KEY: ${{ secrets.SCRAPEOPS_API_KEY }}
         run: python scraper.py
 
       - name: Commit and Push Data
