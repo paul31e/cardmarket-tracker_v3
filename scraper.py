@@ -22,8 +22,8 @@ def send_telegram_alert(product_name, price, target, url):
         print("Telegram-Credentials fehlen.")
         return
     text = (
-        f"🚨 *PREIS-ALERT: {product_name}* 🚨\n\n"
-        f"💰 Günstigster Preis: *{price:.2f} €*\n"
+        f"🚨 *PREIS-ALERT (inkl. Versand): {product_name}* 🚨\n\n"
+        f"💰 Günstigster Gesamtpreis: *{price:.2f} €*\n"
         f"🎯 Zielpreis: *{target:.2f} €*\n\n"
         f"🔗 [Direkt zum Angebot]({url})"
     )
@@ -53,7 +53,6 @@ def parse_price(price_str):
         return None
 
 def init_flaresolverr_session():
-    """Erstellt eine persistente Session in FlareSolverr."""
     try:
         requests.post(FLARESOLVERR_URL, json={"cmd": "sessions.destroy", "session": SESSION_ID}, timeout=10)
     except Exception:
@@ -64,14 +63,12 @@ def init_flaresolverr_session():
     print("Session-Status:", res.json().get("message", "OK"))
 
 def login_via_flaresolverr():
-    """Holt das __cmtkn CSRF-Token und führt den Cardmarket-Login über den echten Action-Endpunkt aus."""
     if not CM_USERNAME or not CM_PASSWORD:
         print("⚠️ Keine Login-Credentials hinterlegt.")
         return False
 
     print(f"Rufe Login-Seite ab für Account '{CM_USERNAME}'...")
     
-    # 1. Login-Seite abrufen
     get_payload = {
         "cmd": "request.get",
         "url": "https://www.cardmarket.com/de/Pokemon/Login",
@@ -92,7 +89,6 @@ def login_via_flaresolverr():
 
     print(f"Extrahierter __cmtkn Token: {cmtkn_val[:12]}..." if cmtkn_val else "⚠️ Kein __cmtkn gefunden!")
 
-    # 2. POST-Request an den exakten Endpunkt: /PostGetAction/User_Login
     login_data = {
         "__cmtkn": cmtkn_val if cmtkn_val else "",
         "referalPage": "/de/Pokemon/Login",
@@ -116,7 +112,6 @@ def login_via_flaresolverr():
     print("Sende Login-POST an Cardmarket...")
     requests.post(FLARESOLVERR_URL, json=post_payload, timeout=70)
     
-    # 3. Session-Check auf der Startseite
     verify_payload = {
         "cmd": "request.get",
         "url": "https://www.cardmarket.com/de/Pokemon",
@@ -130,7 +125,7 @@ def login_via_flaresolverr():
         print("✅ LOGIN-STATUS: ERFOLGREICH EINGELOGGT!")
         return True
     else:
-        print("⚠️ Login-Antwort verarbeitet. Prüfe Status beim ersten Produktaufruf.")
+        print("⚠️ Login verarbeitet, prüfe Status auf Produktseite.")
         return False
 
 def fetch_html_via_flaresolverr(target_url):
@@ -168,7 +163,6 @@ def run_scraper():
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = json.load(f)
 
-    # Session starten & einloggen
     init_flaresolverr_session()
     login_via_flaresolverr()
 
@@ -194,7 +188,6 @@ def run_scraper():
         title = soup.find("title")
         print(f"Seitentitel: {title.get_text(strip=True) if title else 'Kein Titel'}")
 
-        # Status prüfen
         if "EINKAUFSWAGEN" in html or (CM_USERNAME and CM_USERNAME.lower() in html.lower()) or "paul-eisen" in html.lower():
             print("✅ LOGIN-STATUS: EINGELOGGT (Versandkosten aktiv)")
         else:
@@ -214,7 +207,7 @@ def run_scraper():
 
         print(f"Verfügbare Menge: {avail_items}")
 
-        # 2. Angebote auslesen (Artikelpreis & Gesamtpreis mit Versand)
+        # 2. Angebote auslesen
         offer_rows = soup.select("div[id^='articleRow'], .article-row")
         
         parsed_item_prices = []
@@ -240,42 +233,47 @@ def run_scraper():
                     parsed_item_prices.append(item_price)
                     parsed_total_prices.append(total_price)
 
-        print(f"Extrahierte Artikelpreise ({len(parsed_item_prices)}): {parsed_item_prices[:3]}...")
-        print(f"Extrahierte Gesamtpreise  ({len(parsed_total_prices)}): {parsed_total_prices[:3]}...")
+        # Beide Listen unabhängig voneinander sortieren
+        sorted_item_prices = sorted(parsed_item_prices)
+        sorted_total_prices = sorted(parsed_total_prices)
 
-        if parsed_item_prices:
-            c1 = parsed_item_prices[0] if len(parsed_item_prices) > 0 else None
-            c2 = parsed_item_prices[1] if len(parsed_item_prices) > 1 else None
-            c3 = parsed_item_prices[2] if len(parsed_item_prices) > 2 else None
+        print(f"Extrahierte Gesamtpreise inkl. Versand ({len(sorted_total_prices)}): {sorted_total_prices[:3]}...")
+        print(f"Extrahierte Artikelpreise ohne Versand ({len(sorted_item_prices)}): {sorted_item_prices[:3]}...")
 
-            # 3. Durchschnitte nach Typ berechnen
+        if sorted_total_prices:
+            # Günstigste 3 Gesamtpreise (inkl. Versand)
+            c1_total = sorted_total_prices[0] if len(sorted_total_prices) > 0 else None
+            c2_total = sorted_total_prices[1] if len(sorted_total_prices) > 1 else None
+            c3_total = sorted_total_prices[2] if len(sorted_total_prices) > 2 else None
+
+            # Durchschnitte berechnen
             if p_type == "case":
-                avg_robust = calc_mean(parsed_item_prices[1:5])
-                avg_market = calc_mean(parsed_item_prices[:10])
-                avg_robust_shipping = calc_mean(parsed_total_prices[1:5])
-                avg_market_shipping = calc_mean(parsed_total_prices[:10])
+                avg_robust = calc_mean(sorted_item_prices[1:5])
+                avg_market = calc_mean(sorted_item_prices[:10])
+                avg_robust_shipping = calc_mean(sorted_total_prices[1:5])
+                avg_market_shipping = calc_mean(sorted_total_prices[:10])
             else:
-                avg_robust = calc_mean(parsed_item_prices[2:10])
-                avg_market = calc_mean(parsed_item_prices[:15])
-                avg_robust_shipping = calc_mean(parsed_total_prices[2:10])
-                avg_market_shipping = calc_mean(parsed_total_prices[:15])
+                avg_robust = calc_mean(sorted_item_prices[2:10])
+                avg_market = calc_mean(sorted_item_prices[:15])
+                avg_robust_shipping = calc_mean(sorted_total_prices[2:10])
+                avg_market_shipping = calc_mean(sorted_total_prices[:15])
 
-            print(f"Artikelpreise: Robust={avg_robust}€ | Markt={avg_market}€")
-            print(f"Inkl. Versand: Robust={avg_robust_shipping}€ | Markt={avg_market_shipping}€")
+            print(f"Inkl. Versand: Top 3 = [{c1_total}€, {c2_total}€, {c3_total}€] | Robust={avg_robust_shipping}€ | Markt={avg_market_shipping}€")
+            print(f"Ohne  Versand: Robust={avg_robust}€ | Markt={avg_market}€")
 
-            # 4. Alert prüfen
-            if c1 and target and c1 <= target:
-                print(f"-> Alert getriggert: {c1}€ <= {target}€")
-                send_telegram_alert(p_name, c1, target, p_url)
+            # Alert auf Basis des günstigsten Gesamtpreises prüfen
+            if c1_total and target and c1_total <= target:
+                print(f"-> Alert getriggert: {c1_total}€ <= {target}€")
+                send_telegram_alert(p_name, c1_total, target, p_url)
 
             results.append({
                 "timestamp": timestamp,
                 "product_name": p_name,
                 "product_type": p_type,
                 "available_items": avail_items,
-                "cheapest_1": c1,
-                "cheapest_2": c2,
-                "cheapest_3": c3,
+                "cheapest_1": c1_total,
+                "cheapest_2": c2_total,
+                "cheapest_3": c3_total,
                 "avg_robust": avg_robust,
                 "avg_market": avg_market,
                 "avg_robust_shipping": avg_robust_shipping,
