@@ -55,27 +55,26 @@ def parse_price(price_str):
 def init_flaresolverr_session():
     """Erstellt eine persistente Session in FlareSolverr."""
     try:
-        # Alte Session zerstören falls vorhanden
         requests.post(FLARESOLVERR_URL, json={"cmd": "sessions.destroy", "session": SESSION_ID}, timeout=10)
     except Exception:
         pass
 
     print(f"Erstelle FlareSolverr-Session '{SESSION_ID}'...")
     res = requests.post(FLARESOLVERR_URL, json={"cmd": "sessions.create", "session": SESSION_ID}, timeout=20)
-    print("Session-Erstellung:", res.json().get("message", "OK"))
+    print("Session-Status:", res.json().get("message", "OK"))
 
 def login_via_flaresolverr():
-    """Holt CSRF-Token und führt den Cardmarket-Login aus."""
+    """Holt das __cmtkn CSRF-Token und führt den Cardmarket-Login aus."""
     if not CM_USERNAME or not CM_PASSWORD:
         print("⚠️ Keine Login-Credentials hinterlegt.")
         return False
 
-    print(f"Starte Login für Account '{CM_USERNAME}'...")
+    print(f"Rufe Login-Seite ab für Account '{CM_USERNAME}'...")
     
-    # Schritt 1: Startseite laden um Cookies & Token zu initialisieren
+    # 1. Login-Seite abrufen um das __cmtkn Token zu extrahieren
     get_payload = {
         "cmd": "request.get",
-        "url": "https://www.cardmarket.com/de/Pokemon",
+        "url": "https://www.cardmarket.com/de/Pokemon/Login",
         "session": SESSION_ID,
         "maxTimeout": 60000
     }
@@ -83,36 +82,44 @@ def login_via_flaresolverr():
     html = res.get("solution", {}).get("response", "")
     soup = BeautifulSoup(html, "html.parser")
 
-    # CSRF-Token aus dem HTML auslesen
-    csrf_token = None
-    token_input = soup.select_one("input[name='_csrf_token'], input[name='csrf_token'], input[name='token']")
-    if token_input:
-        csrf_token = token_input.get("value")
+    # __cmtkn Input-Feld suchen
+    token_input = soup.select_one("input[name='__cmtkn']")
+    cmtkn_val = token_input.get("value") if token_input else None
 
-    # Schritt 2: POST Login-Daten absenden
+    if not cmtkn_val:
+        # Fallback: Per Regex im HTML suchen
+        match = re.search(r'name=["\']__cmtkn["\']\s+value=["\']([^"\']+)["\']', html)
+        if match:
+            cmtkn_val = match.group(1)
+
+    print(f"Extrahierter __cmtkn Token: {cmtkn_val[:12]}..." if cmtkn_val else "⚠️ Kein __cmtkn gefunden!")
+
+    # 2. Exakter POST-Request an /User_Login
     login_data = {
+        "referalPage": "/de/Pokemon/Login",
         "username": CM_USERNAME,
         "userPassword": CM_PASSWORD
     }
-    if csrf_token:
-        login_data["_csrf_token"] = csrf_token
+    if cmtkn_val:
+        login_data["__cmtkn"] = cmtkn_val
 
     post_payload = {
         "cmd": "request.post",
-        "url": "https://www.cardmarket.com/de/Pokemon/Login",
+        "url": "https://www.cardmarket.com/de/Pokemon/User_Login",
         "session": SESSION_ID,
         "postData": urllib.parse.urlencode(login_data),
         "maxTimeout": 60000
     }
     
+    print("Sende Login-POST an Cardmarket...")
     post_res = requests.post(FLARESOLVERR_URL, json=post_payload, timeout=70).json()
     post_html = post_res.get("solution", {}).get("response", "")
 
     if "EINKAUFSWAGEN" in post_html or CM_USERNAME.lower() in post_html.lower():
-        print("✅ LOGIN-STATUS: EINGELOGGT!")
+        print("✅ LOGIN-STATUS: ERFOLGREICH EINGELOGGT!")
         return True
     else:
-        print("⚠️ LOGIN-STATUS: Standard-POST gesendet, prüfe Status beim ersten Produktabruf.")
+        print("⚠️ Login-Antwort erhalten, prüfe Session beim ersten Produktabruf.")
         return False
 
 def fetch_html_via_flaresolverr(target_url):
@@ -150,7 +157,7 @@ def run_scraper():
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = json.load(f)
 
-    # 1. Session erzeugen & Login ausführen
+    # 1. Session initialisieren und einloggen
     init_flaresolverr_session()
     login_via_flaresolverr()
 
@@ -176,9 +183,9 @@ def run_scraper():
         title = soup.find("title")
         print(f"Seitentitel: {title.get_text(strip=True) if title else 'Kein Titel'}")
 
-        # Login-Check auf der Produktseite
+        # Login-Check
         if "EINKAUFSWAGEN" in html or (CM_USERNAME and CM_USERNAME.lower() in html.lower()):
-            print("✅ LOGIN-STATUS: EINGELOGGT")
+            print("✅ LOGIN-STATUS: EINGELOGGT (Versandkosten aktiv)")
         else:
             print("❌ LOGIN-STATUS: NICHT EINGELOGGT")
 
@@ -196,7 +203,7 @@ def run_scraper():
 
         print(f"Verfügbare Menge: {avail_items}")
 
-        # 2. Angebote auslesen
+        # 2. Angebote auslesen (Artikelpreis & Versand getrennt parsen)
         offer_rows = soup.select("div[id^='articleRow'], .article-row")
         
         parsed_item_prices = []
@@ -206,6 +213,7 @@ def run_scraper():
             price_cell = row.select_one(".col-price, .price-container, .font-weight-bold")
             text_to_search = price_cell.get_text(" ", strip=True) if price_cell else row.get_text(" ", strip=True)
             
+            # Findet alle Euro-Werte (z. B. 359,99 € und + 6,13 €)
             euro_matches = re.findall(r"(\d+(?:\.\d{3})*,\d{2})\s*€", text_to_search)
             
             if euro_matches:
@@ -218,6 +226,7 @@ def run_scraper():
                             shipping_cost = parsed_ship
                     
                     total_price = round(item_price + shipping_cost, 2)
+                    
                     parsed_item_prices.append(item_price)
                     parsed_total_prices.append(total_price)
 
@@ -229,7 +238,7 @@ def run_scraper():
             c2 = parsed_item_prices[1] if len(parsed_item_prices) > 1 else None
             c3 = parsed_item_prices[2] if len(parsed_item_prices) > 2 else None
 
-            # 3. Durchschnitte berechnen
+            # 3. Durchschnitte nach Typ berechnen
             if p_type == "case":
                 avg_robust = calc_mean(parsed_item_prices[1:5])
                 avg_market = calc_mean(parsed_item_prices[:10])
