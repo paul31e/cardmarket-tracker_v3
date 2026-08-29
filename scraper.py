@@ -5,7 +5,6 @@ import datetime
 import requests
 import pandas as pd
 from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth_sync
 
 CSV_PATH = "data/data.csv"
 CONFIG_PATH = "config.json"
@@ -30,14 +29,14 @@ def send_telegram_alert(product_name, price, target, url):
         "disable_web_page_preview": False
     }
     try:
-        requests.post(url_api, json=payload, timeout=10)
+        res = requests.post(url_api, json=payload, timeout=10)
+        print(f"Telegram Status: {res.status_code}")
     except Exception as e:
         print(f"Telegram-Fehler: {e}")
 
 def parse_price(price_str):
     if not price_str:
         return None
-    # Filtert 1.234,56 € oder 123,45 €
     cleaned = re.sub(r"[^\d,]", "", price_str).replace(",", ".")
     try:
         return float(cleaned)
@@ -58,7 +57,7 @@ def run_scraper():
                 "--disable-blink-features=AutomationControlled",
                 "--no-sandbox",
                 "--disable-setuid-sandbox",
-                "--disable-web-security"
+                "--disable-infobars"
             ]
         )
         context = browser.new_context(
@@ -68,7 +67,13 @@ def run_scraper():
             timezone_id="Europe/Berlin"
         )
         page = context.new_page()
-        stealth_sync(page)
+
+        # Stealth Script manuell einhängen
+        page.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => undefined
+            });
+        """)
 
         for item in config["products"]:
             print(f"\n==========================================")
@@ -81,7 +86,7 @@ def run_scraper():
                 page_title = page.title()
                 print(f"Seitentitel: {page_title}")
 
-                # Cookie-Banner wegklicken
+                # Cookie-Banner schließen falls vorhanden
                 for sel in ["button:has-text('Alle akzeptieren')", "button:has-text('Accept all')", "#btn-accept-all", ".btn-primary"]:
                     try:
                         btn = page.locator(sel)
@@ -92,7 +97,7 @@ def run_scraper():
                     except Exception:
                         pass
 
-                # 1. Verfügbare Artikel ermitteln
+                # 1. Verfügbare Artikel auslesen
                 avail_items = 0
                 dt_loc = page.locator("dt:has-text('Verfügbare Artikel'), dt:has-text('Available items')")
                 if dt_loc.count() > 0:
@@ -104,34 +109,24 @@ def run_scraper():
                     if match:
                         avail_items = int(match.group(1).replace(".", ""))
 
-                print(f"Verfügbare Menge ermittelt: {avail_items}")
+                print(f"Verfügbare Menge: {avail_items}")
 
-                # 2. Angebotszeilen parsen
-                rows = page.locator("div.article-row, .table-body > div.row, div[id^='articleRow']").all()
+                # 2. Angebote auslesen
                 parsed_offers = []
-
+                rows = page.locator("div.article-row, .table-body > div.row, div[id^='articleRow']").all()
                 for row in rows:
                     txt = row.inner_text()
-                    # Alle Preise in der Zeile finden
-                    matches = re.findall(r"(\d+(?:,\d{2})?)\s*€", txt)
-                    if matches:
-                        p_item = parse_price(matches[0])
+                    prices = re.findall(r"(\d+(?:,\d{2})?)\s*€", txt)
+                    if prices:
+                        p_item = parse_price(prices[0])
                         if p_item and p_item > 0:
-                            p_ship = parse_price(matches[1]) if len(matches) > 1 else 0.0
+                            p_ship = parse_price(prices[1]) if len(matches) > 1 else 0.0
                             parsed_offers.append({
                                 "item_price": p_item,
                                 "total_price": p_item + p_ship
                             })
 
                 print(f"Gefundene Angebote: {len(parsed_offers)}")
-
-                # Falls leer: Debug-Screenshot speichern
-                if not parsed_offers:
-                    print(f"⚠️ Keine Angebote gefunden! Erstelle Debug-Screenshot...")
-                    os.makedirs("debug", exist_ok=True)
-                    page.screenshot(path="debug/failed_page.png", full_page=True)
-                    with open("debug/failed_page.html", "w", encoding="utf-8") as dump:
-                        dump.write(page.content())
 
                 if parsed_offers:
                     limit = 10 if item.get("type") == "single" else 3
@@ -165,7 +160,7 @@ def run_scraper():
 
         browser.close()
 
-    # Immer data-Ordner und CSV aktualisieren
+    # In data/data.csv schreiben
     os.makedirs("data", exist_ok=True)
     if results:
         df_new = pd.DataFrame(results)
@@ -175,9 +170,9 @@ def run_scraper():
             df_combined.to_csv(CSV_PATH, index=False)
         else:
             df_new.to_csv(CSV_PATH, index=False)
-        print("\n=> data/data.csv wurde erfolgreich mit neuen Daten befüllt!")
+        print("\n=> Daten erfolgreich in data/data.csv geschrieben!")
     else:
-        print("\n=> Keine Daten erfasst (siehe Debug-Dateien falls angelegt).")
+        print("\n=> Keine Daten erfasst.")
 
 if __name__ == "__main__":
     run_scraper()
