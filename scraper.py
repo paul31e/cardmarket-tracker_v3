@@ -49,7 +49,6 @@ def parse_price(price_str):
         return None
 
 def fetch_html_via_flaresolverr(target_url):
-    """Sendet Anfrage an den lokalen FlareSolverr-Container"""
     payload = {
         "cmd": "request.get",
         "url": target_url,
@@ -74,6 +73,12 @@ def fetch_html_via_flaresolverr(target_url):
         print(f"Verbindungsfehler zu FlareSolverr: {e}")
         return None
 
+def calc_mean(prices):
+    """Hilfsfunktion zur sicheren Berechnung des Mittelwerts."""
+    if not prices:
+        return None
+    return round(sum(prices) / len(prices), 2)
+
 def run_scraper():
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = json.load(f)
@@ -82,20 +87,25 @@ def run_scraper():
     results = []
 
     for item in config["products"]:
-        print(f"\n==========================================")
-        print(f"Scrape: {item['name']}")
-        print(f"URL: {item['url']}")
+        p_name = item["name"]
+        p_type = item.get("type", "single").lower()
+        p_url = item["url"]
+        target = item.get("target_price", 0)
 
-        html = fetch_html_via_flaresolverr(item["url"])
+        print(f"\n==========================================")
+        print(f"Scrape: {p_name} (Typ: {p_type})")
+        print(f"URL: {p_url}")
+
+        html = fetch_html_via_flaresolverr(p_url)
         if not html:
-            print(f"Konnte {item['name']} nicht abrufen.")
+            print(f"Konnte {p_name} nicht abrufen.")
             continue
 
         soup = BeautifulSoup(html, "html.parser")
         title = soup.find("title")
         print(f"Seitentitel: {title.get_text(strip=True) if title else 'Kein Titel'}")
 
-        # 1. Verfügbare Artikel auslesen
+        # 1. Gesamt-Menge erfassen
         avail_items = 0
         for dt in soup.find_all("dt"):
             txt = dt.get_text(strip=True)
@@ -109,7 +119,7 @@ def run_scraper():
 
         print(f"Verfügbare Menge: {avail_items}")
 
-        # 2. Angebote auslesen
+        # 2. Angebote aus Tabelle extrahieren
         offer_rows = soup.select("div[id^='articleRow'], .article-row")
         parsed_prices = []
 
@@ -132,33 +142,43 @@ def run_scraper():
                         parsed_prices.append(val)
                         break
 
-        print(f"Extrahierte Angebotspreise ({len(parsed_prices)}): {parsed_prices[:5]}...")
+        sorted_prices = sorted(parsed_prices)
+        print(f"Extrahierte Preise ({len(sorted_prices)}): {sorted_prices[:5]}...")
 
-        if parsed_prices:
-            limit = 10 if item.get("type") == "single" else 3
-            avg_slice = parsed_prices[:limit]
-            avg_price = round(sum(avg_slice) / len(avg_slice), 2)
-
-            sorted_prices = sorted(parsed_prices)
+        if sorted_prices:
             c1 = sorted_prices[0] if len(sorted_prices) > 0 else None
             c2 = sorted_prices[1] if len(sorted_prices) > 1 else None
             c3 = sorted_prices[2] if len(sorted_prices) > 2 else None
 
-            print(f"-> Top 1: {c1}€ | Top 2: {c2}€ | Top 3: {c3}€ | Schnitt ({limit}): {avg_price}€")
+            # 3. Spezifische Durchschnittsberechnung nach Typ
+            if p_type == "case":
+                # Robust: Rang 2 bis 5 (Index 1 bis 5)
+                # Gesamt: Rang 1 bis 10 (Index 0 bis 10)
+                avg_robust = calc_mean(sorted_prices[1:5])
+                avg_market = calc_mean(sorted_prices[:10])
+                print(f"Case-Logik  -> Top 1: {c1}€ | Robust (Rang 2-5): {avg_robust}€ | Markt (Rang 1-10): {avg_market}€")
+            else:
+                # Robust: Rang 3 bis 10 (Index 2 bis 10)
+                # Gesamt: Rang 1 bis 15 (Index 0 bis 15)
+                avg_robust = calc_mean(sorted_prices[2:10])
+                avg_market = calc_mean(sorted_prices[:15])
+                print(f"Single-Logik -> Top 1: {c1}€ | Robust (Rang 3-10): {avg_robust}€ | Markt (Rang 1-15): {avg_market}€")
 
-            target = item.get("target_price", 0)
-            if c1 and c1 <= target:
+            # 4. Alert prüfen
+            if c1 and target and c1 <= target:
                 print(f"-> Alert getriggert: {c1}€ <= {target}€")
-                send_telegram_alert(item["name"], c1, target, item["url"])
+                send_telegram_alert(p_name, c1, target, p_url)
 
             results.append({
                 "timestamp": timestamp,
-                "product_name": item["name"],
-                "avg_item_price": avg_price,
+                "product_name": p_name,
+                "product_type": p_type,
                 "available_items": avail_items,
-                "cheapest_total_1": c1,
-                "cheapest_total_2": c2,
-                "cheapest_total_3": c3
+                "cheapest_1": c1,
+                "cheapest_2": c2,
+                "cheapest_3": c3,
+                "avg_robust": avg_robust,
+                "avg_market": avg_market
             })
 
     # In CSV schreiben
@@ -167,11 +187,12 @@ def run_scraper():
         df_new = pd.DataFrame(results)
         if os.path.exists(CSV_PATH) and os.path.getsize(CSV_PATH) > 0:
             df_existing = pd.read_csv(CSV_PATH)
+            # Spaltenstruktur vereinheitlichen
             df_combined = pd.concat([df_existing, df_new], ignore_index=True)
             df_combined.to_csv(CSV_PATH, index=False)
         else:
             df_new.to_csv(CSV_PATH, index=False)
-        print("\n=> Daten erfolgreich in data/data.csv gespeichert!")
+        print("\n=> data/data.csv wurde erfolgreich aktualisiert!")
     else:
         print("\n=> Keine Daten erfasst.")
 
