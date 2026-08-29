@@ -2,13 +2,13 @@
   "products": [
     {
       "name": "Pokemon Destined Rivals Booster Display (Eng)",
-      "url": "https://www.cardmarket.com/de/Pokemon/Products/Booster-Boxes/Destined-Rivals-Booster-Box?language=1",
+      "url": "https://www.cardmarket.com/de/Pokemon/Products/Booster-Boxes/Destined-Rivals-Booster-Box?sellerReputation=3&language=1",
       "type": "single",
       "target_price": 340
     },
     {
       "name": "Pokemon Destined Rivals Booster Display Case (Eng)",
-      "url": "https://www.cardmarket.com/de/Pokemon/Products/Booster-Boxes/Destined-Rivals-6-Booster-Box-Case?language=1",
+      "url": "https://www.cardmarket.com/de/Pokemon/Products/Booster-Boxes/Destined-Rivals-6-Booster-Box-Case?sellerReputation=3&language=1",
       "type": "case",
       "target_price": 2200
     }
