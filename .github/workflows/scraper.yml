@@ -8,16 +8,20 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    
+    services:
+      flaresolverr:
+        image: ghcr.io/flaresolverr/flaresolverr:latest
+        ports:
+          - 8191:8191
+        env:
+          LOG_LEVEL: info
+          LOG_HTML: false
+          CAPTCHA_SOLVER: none
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Setup and Start Tor
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y tor
-          sudo systemctl restart tor
-          sleep 5
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -27,6 +31,14 @@ jobs:
 
       - name: Install Dependencies
         run: pip install -r requirements.txt
+
+      - name: Wait for FlareSolverr
+        run: |
+          echo "Warte auf FlareSolverr..."
+          until curl -s http://localhost:8191/ > /dev/null; do
+            sleep 2
+          done
+          echo "FlareSolverr ist bereit!"
 
       - name: Run Scraper
         env:
