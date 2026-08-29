@@ -1,16 +1,19 @@
 import os
 import re
 import json
+import time
 import datetime
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
+from curl_cffi import requests as cffi_requests
 
 CSV_PATH = "data/data.csv"
 CONFIG_PATH = "config.json"
 TELEGRAM_BOT_TOKEN = os.environ.get("BOTFATHER")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAMCHATID")
-SCRAPEOPS_API_KEY = os.environ.get("SCRAPEOPS_API_KEY")
+
+TOR_PROXY = "socks5h://127.0.0.1:9050"
 
 def send_telegram_alert(product_name, price, target, url):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -36,14 +39,10 @@ def send_telegram_alert(product_name, price, target, url):
         print(f"Telegram-Fehler: {e}")
 
 def parse_price(price_str):
-    """Konvertiert '2.100,00 €' oder '159,99 €' sauber in float 2100.00 bzw. 159.99"""
     if not price_str:
         return None
-    # Entfernt Währungssymbole und Leerzeichen
     clean = price_str.replace("€", "").replace("\xa0", "").strip()
-    # Entfernt Tausenderpunkte (2.100,00 -> 2100,00)
     clean = clean.replace(".", "")
-    # Ersetzt Komma durch Dezimalpunkt (2100,00 -> 2100.00)
     clean = clean.replace(",", ".")
     try:
         val = float(clean)
@@ -51,28 +50,32 @@ def parse_price(price_str):
     except ValueError:
         return None
 
-def fetch_html_via_proxy(target_url):
-    if not SCRAPEOPS_API_KEY:
-        print("⚠️ FEHLER: SCRAPEOPS_API_KEY Secret fehlt!")
-        return None
-    
-    proxy_url = "https://proxy.scrapeops.io/v1/"
-    params = {
-        "api_key": SCRAPEOPS_API_KEY,
-        "url": target_url,
-        "residential": "true",
-        "country": "de"
+def fetch_page_with_retry(url, max_retries=3):
+    headers = {
+        "Accept-Language": "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Referer": "https://www.google.com/",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
     }
-    try:
-        resp = requests.get(proxy_url, params=params, timeout=60)
-        if resp.status_code == 200:
-            return resp.text
-        else:
-            print(f"Proxy Fehler-Status: {resp.status_code}")
-            return None
-    except Exception as e:
-        print(f"Fehler beim Proxy-Abruf: {e}")
-        return None
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"Abruf Versuch {attempt}/{max_retries} über Tor-Netzwerk...")
+            session = cffi_requests.Session(
+                impersonate="chrome124",
+                proxies={"http": TOR_PROXY, "https": TOR_PROXY}
+            )
+            resp = session.get(url, headers=headers, timeout=30)
+            
+            if resp.status_code == 200 and "Attention Required" not in resp.text and "Just a moment" not in resp.text:
+                return resp.text
+            else:
+                print(f"HTTP Status: {resp.status_code} (Cloudflare block oder Fehler). Warte 3s...")
+                time.sleep(3)
+        except Exception as e:
+            print(f"Fehler bei Versuch {attempt}: {e}")
+            time.sleep(3)
+            
+    return None
 
 def run_scraper():
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
@@ -86,14 +89,16 @@ def run_scraper():
         print(f"Scrape: {item['name']}")
         print(f"URL: {item['url']}")
 
-        html = fetch_html_via_proxy(item["url"])
+        html = fetch_page_with_retry(item["url"])
         if not html:
-            print("Konnte Seite nicht abrufen.")
+            print(f"Konnte {item['name']} nicht abrufen.")
             continue
 
         soup = BeautifulSoup(html, "html.parser")
+        title = soup.find("title")
+        print(f"Seitentitel: {title.get_text(strip=True) if title else 'Kein Titel'}")
 
-        # 1. Verfügbare Artikel aus Infobox auslesen
+        # 1. Verfügbare Artikel auslesen
         avail_items = 0
         for dt in soup.find_all("dt"):
             txt = dt.get_text(strip=True)
@@ -107,13 +112,11 @@ def run_scraper():
 
         print(f"Verfügbare Menge: {avail_items}")
 
-        # 2. Angebote gezielt aus der Angebotstabelle extrahieren
-        # Filtert nur Zeilen mit articleRow-IDs (schließt Info-Boxen & Diagramme aus)
+        # 2. Angebote auslesen
         offer_rows = soup.select("div[id^='articleRow'], .article-row")
         parsed_prices = []
 
         for row in offer_rows:
-            # Selektiert den Preis in der Angebotszeile
             price_elem = row.select_one(".col-price, .price-container, .font-weight-bold")
             if price_elem:
                 p_text = price_elem.get_text(strip=True)
@@ -123,7 +126,6 @@ def run_scraper():
                     if val and val > 1.0:
                         parsed_prices.append(val)
 
-        # Fallback, falls Klassen abweichen: Alle Preisblöcke innerhalb von Tabellenzeilen
         if not parsed_prices:
             for row in offer_rows:
                 matches = re.findall(r"(\d+(?:\.\d{3})*,\d{2})\s*€", row.get_text())
@@ -131,17 +133,15 @@ def run_scraper():
                     val = parse_price(m)
                     if val and val > 1.0:
                         parsed_prices.append(val)
-                        break  # Nur erster gefundener Preis pro Verkäuferzeile
+                        break
 
         print(f"Extrahierte Angebotspreise ({len(parsed_prices)}): {parsed_prices[:5]}...")
 
         if parsed_prices:
-            # 3. Durchschnittsberechnung (Top 10 bei single, Top 3 bei case)
             limit = 10 if item.get("type") == "single" else 3
             avg_slice = parsed_prices[:limit]
             avg_price = round(sum(avg_slice) / len(avg_slice), 2)
 
-            # 4. Top 3 Preise
             sorted_prices = sorted(parsed_prices)
             c1 = sorted_prices[0] if len(sorted_prices) > 0 else None
             c2 = sorted_prices[1] if len(sorted_prices) > 1 else None
@@ -149,7 +149,6 @@ def run_scraper():
 
             print(f"-> Top 1: {c1}€ | Top 2: {c2}€ | Top 3: {c3}€ | Schnitt ({limit}): {avg_price}€")
 
-            # 5. Alert prüfen
             target = item.get("target_price", 0)
             if c1 and c1 <= target:
                 print(f"-> Alert getriggert: {c1}€ <= {target}€")
@@ -171,12 +170,11 @@ def run_scraper():
         df_new = pd.DataFrame(results)
         if os.path.exists(CSV_PATH) and os.path.getsize(CSV_PATH) > 0:
             df_existing = pd.read_csv(CSV_PATH)
-            # Bereinige eventuell fehlerhafte Vorwerte bei Bedarf
             df_combined = pd.concat([df_existing, df_new], ignore_index=True)
             df_combined.to_csv(CSV_PATH, index=False)
         else:
             df_new.to_csv(CSV_PATH, index=False)
-        print("\n=> data/data.csv wurde erfolgreich aktualisiert!")
+        print("\n=> Daten erfolgreich in data/data.csv gespeichert!")
     else:
         print("\n=> Keine Daten erfasst.")
 
