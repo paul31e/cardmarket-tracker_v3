@@ -2,6 +2,7 @@ import os
 import re
 import json
 import datetime
+import urllib.parse
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -10,7 +11,8 @@ CSV_PATH = "data/data.csv"
 CONFIG_PATH = "config.json"
 TELEGRAM_BOT_TOKEN = os.environ.get("BOTFATHER")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAMCHATID")
-CM_SESSION_COOKIE = os.environ.get("CM_SESSION_COOKIE")
+CM_USERNAME = os.environ.get("CM_USERNAME")
+CM_PASSWORD = os.environ.get("CM_PASSWORD")
 
 FLARESOLVERR_URL = "http://localhost:8191/v1"
 
@@ -49,22 +51,52 @@ def parse_price(price_str):
     except ValueError:
         return None
 
-def fetch_html_via_flaresolverr(target_url):
+def login_to_cardmarket():
+    """Führt einen automatisierten Formular-Login über FlareSolverr durch."""
+    if not CM_USERNAME or not CM_PASSWORD:
+        print("Keine Login-Credentials hinterlegt. Starte als Gast.")
+        return []
+
+    print(f"Versuche Login für Benutzer '{CM_USERNAME}' über FlareSolverr...")
+    login_url = "https://www.cardmarket.com/de/Pokemon"
+    
+    # Form-Data URL-encoded für den Cardmarket Login-POST
+    post_data = urllib.parse.urlencode({
+        "username": CM_USERNAME,
+        "userPassword": CM_PASSWORD
+    })
+
+    payload = {
+        "cmd": "request.post",
+        "url": login_url,
+        "postData": post_data,
+        "maxTimeout": 60000
+    }
+    headers = {"Content-Type": "application/json"}
+
+    try:
+        resp = requests.post(FLARESOLVERR_URL, json=payload, headers=headers, timeout=70)
+        data = resp.json()
+        if data.get("status") == "ok":
+            cookies = data.get("solution", {}).get("cookies", [])
+            print(f"Login-Request erfolgreich! {len(cookies)} Cookies erhalten.")
+            return cookies
+        else:
+            print(f"Login-Fehler: {data.get('message')}")
+            return []
+    except Exception as e:
+        print(f"Verbindungsfehler beim Login: {e}")
+        return []
+
+def fetch_html_via_flaresolverr(target_url, session_cookies):
     payload = {
         "cmd": "request.get",
         "url": target_url,
         "maxTimeout": 60000
     }
 
-    if CM_SESSION_COOKIE:
-        payload["cookies"] = [
-            {
-                "name": "PHPSESSID",
-                "value": CM_SESSION_COOKIE,
-                "domain": ".cardmarket.com",
-                "path": "/"
-            }
-        ]
+    if session_cookies:
+        payload["cookies"] = session_cookies
 
     headers = {"Content-Type": "application/json"}
 
@@ -94,6 +126,9 @@ def run_scraper():
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = json.load(f)
 
+    # 1. Vorab einloggen und Cookies sichern
+    session_cookies = login_to_cardmarket()
+
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     results = []
 
@@ -107,7 +142,7 @@ def run_scraper():
         print(f"Scrape: {p_name} (Typ: {p_type})")
         print(f"URL: {p_url}")
 
-        html = fetch_html_via_flaresolverr(p_url)
+        html = fetch_html_via_flaresolverr(p_url, session_cookies)
         if not html:
             print(f"Konnte {p_name} nicht abrufen.")
             continue
@@ -116,7 +151,7 @@ def run_scraper():
         title = soup.find("title")
         print(f"Seitentitel: {title.get_text(strip=True) if title else 'Kein Titel'}")
 
-        # 1. Gesamt-Menge erfassen
+        # Gesamtmenge erfassen
         avail_items = 0
         for dt in soup.find_all("dt"):
             txt = dt.get_text(strip=True)
@@ -130,7 +165,7 @@ def run_scraper():
 
         print(f"Verfügbare Menge: {avail_items}")
 
-        # 2. Angebote aus Tabelle extrahieren
+        # Angebote aus Tabelle extrahieren
         offer_rows = soup.select("div[id^='articleRow'], .article-row")
         parsed_prices = []
 
@@ -161,7 +196,7 @@ def run_scraper():
             c2 = sorted_prices[1] if len(sorted_prices) > 1 else None
             c3 = sorted_prices[2] if len(sorted_prices) > 2 else None
 
-            # 3. Spezifische Durchschnittsberechnung nach Typ
+            # Durchschnittsberechnung nach Typ
             if p_type == "case":
                 avg_robust = calc_mean(sorted_prices[1:5])
                 avg_market = calc_mean(sorted_prices[:10])
@@ -171,7 +206,7 @@ def run_scraper():
                 avg_market = calc_mean(sorted_prices[:15])
                 print(f"Single-Logik -> Top 1: {c1}€ | Robust (Rang 3-10): {avg_robust}€ | Markt (Rang 1-15): {avg_market}€")
 
-            # 4. Alert prüfen
+            # Alert prüfen
             if c1 and target and c1 <= target:
                 print(f"-> Alert getriggert: {c1}€ <= {target}€")
                 send_telegram_alert(p_name, c1, target, p_url)
