@@ -4,7 +4,8 @@ import json
 import datetime
 import requests
 import pandas as pd
-from playwright.sync_api import sync_playwright
+from bs4 import BeautifulSoup
+from curl_cffi import requests as cffi_requests
 
 CSV_PATH = "data/data.csv"
 CONFIG_PATH = "config.json"
@@ -50,117 +51,91 @@ def run_scraper():
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     results = []
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=True,
-            args=[
-                "--disable-blink-features=AutomationControlled",
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-infobars"
-            ]
-        )
-        context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            viewport={"width": 1920, "height": 1080},
-            locale="de-DE",
-            timezone_id="Europe/Berlin"
-        )
-        page = context.new_page()
+    # Echter Browser-Session mit TLS-Impersonation
+    session = cffi_requests.Session(impersonate="chrome124")
 
-        # Stealth Script manuell einhängen
-        page.add_init_script("""
-            Object.defineProperty(navigator, 'webdriver', {
-                get: () => undefined
-            });
-        """)
+    for item in config["products"]:
+        print(f"\n==========================================")
+        print(f"Scrape: {item['name']}")
+        print(f"URL: {item['url']}")
 
-        for item in config["products"]:
-            print(f"\n==========================================")
-            print(f"Scrape: {item['name']}")
-            print(f"URL: {item['url']}")
-            try:
-                response = page.goto(item["url"], wait_until="domcontentloaded", timeout=60000)
-                page.wait_for_timeout(4000)
+        try:
+            headers = {
+                "Accept-Language": "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
+                "Referer": "https://www.google.com/"
+            }
+            resp = session.get(item["url"], headers=headers, timeout=30)
+            print(f"HTTP Status: {resp.status_code}")
 
-                page_title = page.title()
-                print(f"Seitentitel: {page_title}")
+            soup = BeautifulSoup(resp.text, "html.parser")
+            title_tag = soup.find("title")
+            title_text = title_tag.get_text(strip=True) if title_tag else "Kein Titel"
+            print(f"Seitentitel: {title_text}")
 
-                # Cookie-Banner schließen falls vorhanden
-                for sel in ["button:has-text('Alle akzeptieren')", "button:has-text('Accept all')", "#btn-accept-all", ".btn-primary"]:
-                    try:
-                        btn = page.locator(sel)
-                        if btn.count() > 0 and btn.first.is_visible():
-                            btn.first.click()
-                            page.wait_for_timeout(1000)
-                            break
-                    except Exception:
-                        pass
+            # 1. Verfügbare Artikel auslesen
+            avail_items = 0
+            for dt in soup.find_all("dt"):
+                if "Verfügbare Artikel" in dt.get_text() or "Available items" in dt.get_text():
+                    dd = dt.find_next_sibling("dd")
+                    if dd:
+                        avail_items = int(re.sub(r"[^\d]", "", dd.get_text()))
+                        break
 
-                # 1. Verfügbare Artikel auslesen
-                avail_items = 0
-                dt_loc = page.locator("dt:has-text('Verfügbare Artikel'), dt:has-text('Available items')")
-                if dt_loc.count() > 0:
-                    dd_text = dt_loc.first.locator("xpath=following-sibling::dd[1]").inner_text()
-                    avail_items = int(re.sub(r"[^\d]", "", dd_text))
-                else:
-                    body_text = page.locator("body").inner_text()
-                    match = re.search(r"(?:Verfügbare Artikel|Available items)[\s:]*([0-9.]+)", body_text, re.IGNORECASE)
-                    if match:
-                        avail_items = int(match.group(1).replace(".", ""))
+            if avail_items == 0:
+                match = re.search(r"(?:Verfügbare Artikel|Available items)[\s:]*([0-9.]+)", resp.text)
+                if match:
+                    avail_items = int(match.group(1).replace(".", ""))
 
-                print(f"Verfügbare Menge: {avail_items}")
+            print(f"Verfügbare Menge: {avail_items}")
 
-                # 2. Angebote auslesen
-                parsed_offers = []
-                rows = page.locator("div.article-row, .table-body > div.row, div[id^='articleRow']").all()
-                for row in rows:
-                    txt = row.inner_text()
-                    prices = re.findall(r"(\d+(?:,\d{2})?)\s*€", txt)
-                    if prices:
-                        p_item = parse_price(prices[0])
-                        if p_item and p_item > 0:
-                            p_ship = parse_price(prices[1]) if len(matches) > 1 else 0.0
-                            parsed_offers.append({
-                                "item_price": p_item,
-                                "total_price": p_item + p_ship
-                            })
+            # 2. Angebote auslesen
+            parsed_offers = []
+            rows = soup.select(".article-row, div[id^='articleRow']")
+            for row in rows:
+                txt = row.get_text(separator=" ")
+                prices = re.findall(r"(\d+(?:,\d{2})?)\s*€", txt)
+                if prices:
+                    p_item = parse_price(prices[0])
+                    if p_item and p_item > 0:
+                        p_ship = parse_price(prices[1]) if len(prices) > 1 else 0.0
+                        parsed_offers.append({
+                            "item_price": p_item,
+                            "total_price": p_item + p_ship
+                        })
 
-                print(f"Gefundene Angebote: {len(parsed_offers)}")
+            print(f"Gefundene Angebote: {len(parsed_offers)}")
 
-                if parsed_offers:
-                    limit = 10 if item.get("type") == "single" else 3
-                    avg_slice = [o["item_price"] for o in parsed_offers[:limit]]
-                    avg_price = round(sum(avg_slice) / len(avg_slice), 2)
+            if parsed_offers:
+                limit = 10 if item.get("type") == "single" else 3
+                avg_slice = [o["item_price"] for o in parsed_offers[:limit]]
+                avg_price = round(sum(avg_slice) / len(avg_slice), 2)
 
-                    sorted_by_total = sorted(parsed_offers, key=lambda x: x["total_price"])
-                    c1 = sorted_by_total[0]["total_price"] if len(sorted_by_total) > 0 else None
-                    c2 = sorted_by_total[1]["total_price"] if len(sorted_by_total) > 1 else None
-                    c3 = sorted_by_total[2]["total_price"] if len(sorted_by_total) > 2 else None
+                sorted_by_total = sorted(parsed_offers, key=lambda x: x["total_price"])
+                c1 = sorted_by_total[0]["total_price"] if len(sorted_by_total) > 0 else None
+                c2 = sorted_by_total[1]["total_price"] if len(sorted_by_total) > 1 else None
+                c3 = sorted_by_total[2]["total_price"] if len(sorted_by_total) > 2 else None
 
-                    print(f"-> Top 1: {c1}€ | Schnitt: {avg_price}€")
+                print(f"-> Top 1: {c1}€ | Schnitt: {avg_price}€")
 
-                    target = item.get("target_price", 0)
-                    if c1 and c1 <= target:
-                        print(f"-> Alert getriggert: {c1}€ <= {target}€")
-                        send_telegram_alert(item["name"], c1, target, item["url"])
+                target = item.get("target_price", 0)
+                if c1 and c1 <= target:
+                    print(f"-> Alert getriggert: {c1}€ <= {target}€")
+                    send_telegram_alert(item["name"], c1, target, item["url"])
 
-                    results.append({
-                        "timestamp": timestamp,
-                        "product_name": item["name"],
-                        "avg_item_price": avg_price,
-                        "available_items": avail_items,
-                        "cheapest_total_1": c1,
-                        "cheapest_total_2": c2,
-                        "cheapest_total_3": c3
-                    })
+                results.append({
+                    "timestamp": timestamp,
+                    "product_name": item["name"],
+                    "avg_item_price": avg_price,
+                    "available_items": avail_items,
+                    "cheapest_total_1": c1,
+                    "cheapest_total_2": c2,
+                    "cheapest_total_3": c3
+                })
 
-            except Exception as e:
-                print(f"Fehler bei {item['name']}: {e}")
+        except Exception as e:
+            print(f"Fehler bei {item['name']}: {e}")
 
-        browser.close()
-
-    # In data/data.csv schreiben
+    # In CSV schreiben
     os.makedirs("data", exist_ok=True)
     if results:
         df_new = pd.DataFrame(results)
@@ -170,7 +145,7 @@ def run_scraper():
             df_combined.to_csv(CSV_PATH, index=False)
         else:
             df_new.to_csv(CSV_PATH, index=False)
-        print("\n=> Daten erfolgreich in data/data.csv geschrieben!")
+        print("\n=> Daten erfolgreich in data/data.csv gespeichert!")
     else:
         print("\n=> Keine Daten erfasst.")
 
