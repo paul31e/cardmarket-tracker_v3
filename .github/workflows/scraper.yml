@@ -44,6 +44,7 @@ jobs:
         env:
           BOTFATHER: ${{ secrets.BOTFATHER }}
           TELEGRAMCHATID: ${{ secrets.TELEGRAMCHATID }}
+          CM_SESSION_COOKIE: ${{ secrets.CM_SESSION_COOKIE }}
         run: python scraper.py
 
       - name: Commit and Push Data
