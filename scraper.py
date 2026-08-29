@@ -10,6 +10,7 @@ CSV_PATH = "data/data.csv"
 CONFIG_PATH = "config.json"
 TELEGRAM_BOT_TOKEN = os.environ.get("BOTFATHER")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAMCHATID")
+CM_SESSION_COOKIE = os.environ.get("CM_SESSION_COOKIE")
 
 FLARESOLVERR_URL = "http://localhost:8191/v1"
 
@@ -54,6 +55,17 @@ def fetch_html_via_flaresolverr(target_url):
         "url": target_url,
         "maxTimeout": 60000
     }
+
+    if CM_SESSION_COOKIE:
+        payload["cookies"] = [
+            {
+                "name": "PHPSESSID",
+                "value": CM_SESSION_COOKIE,
+                "domain": ".cardmarket.com",
+                "path": "/"
+            }
+        ]
+
     headers = {"Content-Type": "application/json"}
 
     try:
@@ -74,7 +86,6 @@ def fetch_html_via_flaresolverr(target_url):
         return None
 
 def calc_mean(prices):
-    """Hilfsfunktion zur sicheren Berechnung des Mittelwerts."""
     if not prices:
         return None
     return round(sum(prices) / len(prices), 2)
@@ -152,14 +163,10 @@ def run_scraper():
 
             # 3. Spezifische Durchschnittsberechnung nach Typ
             if p_type == "case":
-                # Robust: Rang 2 bis 5 (Index 1 bis 5)
-                # Gesamt: Rang 1 bis 10 (Index 0 bis 10)
                 avg_robust = calc_mean(sorted_prices[1:5])
                 avg_market = calc_mean(sorted_prices[:10])
                 print(f"Case-Logik  -> Top 1: {c1}€ | Robust (Rang 2-5): {avg_robust}€ | Markt (Rang 1-10): {avg_market}€")
             else:
-                # Robust: Rang 3 bis 10 (Index 2 bis 10)
-                # Gesamt: Rang 1 bis 15 (Index 0 bis 15)
                 avg_robust = calc_mean(sorted_prices[2:10])
                 avg_market = calc_mean(sorted_prices[:15])
                 print(f"Single-Logik -> Top 1: {c1}€ | Robust (Rang 3-10): {avg_robust}€ | Markt (Rang 1-15): {avg_market}€")
@@ -187,7 +194,6 @@ def run_scraper():
         df_new = pd.DataFrame(results)
         if os.path.exists(CSV_PATH) and os.path.getsize(CSV_PATH) > 0:
             df_existing = pd.read_csv(CSV_PATH)
-            # Spaltenstruktur vereinheitlichen
             df_combined = pd.concat([df_existing, df_new], ignore_index=True)
             df_combined.to_csv(CSV_PATH, index=False)
         else:
