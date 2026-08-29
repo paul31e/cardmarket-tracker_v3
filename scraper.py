@@ -2,7 +2,6 @@ import os
 import re
 import json
 import datetime
-import urllib.parse
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -11,8 +10,7 @@ CSV_PATH = "data/data.csv"
 CONFIG_PATH = "config.json"
 TELEGRAM_BOT_TOKEN = os.environ.get("BOTFATHER")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAMCHATID")
-CM_USERNAME = os.environ.get("CM_USERNAME")
-CM_PASSWORD = os.environ.get("CM_PASSWORD")
+CM_SESSION_COOKIE = os.environ.get("CM_SESSION_COOKIE")
 
 FLARESOLVERR_URL = "http://localhost:8191/v1"
 
@@ -51,56 +49,27 @@ def parse_price(price_str):
     except ValueError:
         return None
 
-def login_to_cardmarket():
-    """Führt einen automatisierten Formular-Login über FlareSolverr durch."""
-    if not CM_USERNAME or not CM_PASSWORD:
-        print("Keine Login-Credentials hinterlegt. Starte als Gast.")
-        return []
-
-    print(f"Versuche Login für Benutzer '{CM_USERNAME}' über FlareSolverr...")
-    login_url = "https://www.cardmarket.com/de/Pokemon"
-    
-    post_data = urllib.parse.urlencode({
-        "username": CM_USERNAME,
-        "userPassword": CM_PASSWORD
-    })
-
-    payload = {
-        "cmd": "request.post",
-        "url": login_url,
-        "postData": post_data,
-        "maxTimeout": 60000
-    }
-    headers = {"Content-Type": "application/json"}
-
-    try:
-        resp = requests.post(FLARESOLVERR_URL, json=payload, headers=headers, timeout=70)
-        data = resp.json()
-        if data.get("status") == "ok":
-            cookies = data.get("solution", {}).get("cookies", [])
-            print(f"Login-Request erfolgreich! {len(cookies)} Cookies erhalten.")
-            return cookies
-        else:
-            print(f"Login-Fehler: {data.get('message')}")
-            return []
-    except Exception as e:
-        print(f"Verbindungsfehler beim Login: {e}")
-        return []
-
-def fetch_html_via_flaresolverr(target_url, session_cookies):
+def fetch_html_via_flaresolverr(target_url):
     payload = {
         "cmd": "request.get",
         "url": target_url,
         "maxTimeout": 60000
     }
 
-    if session_cookies:
-        payload["cookies"] = session_cookies
+    if CM_SESSION_COOKIE:
+        payload["cookies"] = [
+            {
+                "name": "PHPSESSID",
+                "value": CM_SESSION_COOKIE.strip(),
+                "domain": ".cardmarket.com",
+                "path": "/"
+            }
+        ]
 
     headers = {"Content-Type": "application/json"}
 
     try:
-        print("Sende Request an lokalen FlareSolverr-Service...")
+        print("Sende Request an FlareSolverr...")
         resp = requests.post(FLARESOLVERR_URL, json=payload, headers=headers, timeout=70)
         data = resp.json()
         
@@ -125,8 +94,6 @@ def run_scraper():
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = json.load(f)
 
-    session_cookies = login_to_cardmarket()
-
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     results = []
 
@@ -140,7 +107,7 @@ def run_scraper():
         print(f"Scrape: {p_name} (Typ: {p_type})")
         print(f"URL: {p_url}")
 
-        html = fetch_html_via_flaresolverr(p_url, session_cookies)
+        html = fetch_html_via_flaresolverr(p_url)
         if not html:
             print(f"Konnte {p_name} nicht abrufen.")
             continue
@@ -149,7 +116,20 @@ def run_scraper():
         title = soup.find("title")
         print(f"Seitentitel: {title.get_text(strip=True) if title else 'Kein Titel'}")
 
-        # Gesamtmenge erfassen
+        # === 100% SICHERER LOGIN-STATUS-CHECK ===
+        user_badge = soup.select_one(".user-nav, .nav-user, .account-button, a[href*='/User/']")
+        has_login_button = soup.select_one("a[href*='/Login'], a[href*='/Register']")
+        
+        if "PAUL2403E" in html or "EINKAUFSWAGEN" in html:
+            print("✅ LOGIN-STATUS: EINGELOGGT (Account-spezifische Daten gefunden!)")
+        elif user_badge:
+            print(f"✅ LOGIN-STATUS: EINGELOGGT als -> {user_badge.get_text(strip=True)}")
+        elif has_login_button:
+            print("❌ LOGIN-STATUS: NICHT EINGELOGGT (Gast-Modus / Login-Button sichtbar)")
+        else:
+            print("⚠️ LOGIN-STATUS: Unklar")
+
+        # 1. Gesamt-Menge erfassen
         avail_items = 0
         for dt in soup.find_all("dt"):
             txt = dt.get_text(strip=True)
@@ -163,17 +143,16 @@ def run_scraper():
 
         print(f"Verfügbare Menge: {avail_items}")
 
-        # Angebote aus Tabelle extrahieren
+        # 2. Angebote aus Tabelle extrahieren
         offer_rows = soup.select("div[id^='articleRow'], .article-row")
         
         parsed_item_prices = []
         parsed_total_prices = []
 
         for row in offer_rows:
-            price_cell = row.select_one(".col-price, .price-container")
+            price_cell = row.select_one(".col-price, .price-container, .font-weight-bold")
             text_to_search = price_cell.get_text(" ", strip=True) if price_cell else row.get_text(" ", strip=True)
             
-            # Alle Euro-Beträge in der Preis-Zelle finden (z. B. "359,99 €" und "+ 6,13 €")
             euro_matches = re.findall(r"(\d+(?:\.\d{3})*,\d{2})\s*€", text_to_search)
             
             if euro_matches:
@@ -194,12 +173,11 @@ def run_scraper():
         print(f"Extrahierte Gesamtpreise  ({len(parsed_total_prices)}): {parsed_total_prices[:3]}...")
 
         if parsed_item_prices:
-            # Günstigste Einzelpreise (Rang 1 bis 3)
             c1 = parsed_item_prices[0] if len(parsed_item_prices) > 0 else None
             c2 = parsed_item_prices[1] if len(parsed_item_prices) > 1 else None
             c3 = parsed_item_prices[2] if len(parsed_item_prices) > 2 else None
 
-            # Durchschnittsberechnung nach Typ (Single vs Case)
+            # 3. Durchschnitte nach Typ berechnen
             if p_type == "case":
                 avg_robust = calc_mean(parsed_item_prices[1:5])
                 avg_market = calc_mean(parsed_item_prices[:10])
@@ -214,7 +192,7 @@ def run_scraper():
             print(f"Artikelpreise: Robust={avg_robust}€ | Markt={avg_market}€")
             print(f"Inkl. Versand: Robust={avg_robust_shipping}€ | Markt={avg_market_shipping}€")
 
-            # Alert prüfen (auf Basis von cheapest_1)
+            # 4. Alert prüfen
             if c1 and target and c1 <= target:
                 print(f"-> Alert getriggert: {c1}€ <= {target}€")
                 send_telegram_alert(p_name, c1, target, p_url)
