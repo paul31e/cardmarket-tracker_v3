@@ -12,11 +12,12 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Tor
+      - name: Setup and Start Tor
         run: |
           sudo apt-get update
           sudo apt-get install -y tor
-          sudo systemctl start tor
+          sudo systemctl restart tor
+          sleep 5
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -25,8 +26,7 @@ jobs:
           cache: 'pip'
 
       - name: Install Dependencies
-        run: |
-          pip install requests[socks] beautifulsoup4 pandas streamlit plotly curl_cffi
+        run: pip install -r requirements.txt
 
       - name: Run Scraper
         env:
