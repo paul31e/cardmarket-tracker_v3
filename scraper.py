@@ -1,19 +1,17 @@
 import os
 import re
 import json
-import time
 import datetime
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
-from curl_cffi import requests as cffi_requests
 
 CSV_PATH = "data/data.csv"
 CONFIG_PATH = "config.json"
 TELEGRAM_BOT_TOKEN = os.environ.get("BOTFATHER")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAMCHATID")
 
-TOR_PROXY = "socks5h://127.0.0.1:9050"
+FLARESOLVERR_URL = "http://localhost:8191/v1"
 
 def send_telegram_alert(product_name, price, target, url):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -50,32 +48,31 @@ def parse_price(price_str):
     except ValueError:
         return None
 
-def fetch_page_with_retry(url, max_retries=3):
-    headers = {
-        "Accept-Language": "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Referer": "https://www.google.com/",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+def fetch_html_via_flaresolverr(target_url):
+    """Sendet Anfrage an den lokalen FlareSolverr-Container"""
+    payload = {
+        "cmd": "request.get",
+        "url": target_url,
+        "maxTimeout": 60000
     }
-    
-    for attempt in range(1, max_retries + 1):
-        try:
-            print(f"Abruf Versuch {attempt}/{max_retries} über Tor-Netzwerk...")
-            session = cffi_requests.Session(
-                impersonate="chrome124",
-                proxies={"http": TOR_PROXY, "https": TOR_PROXY}
-            )
-            resp = session.get(url, headers=headers, timeout=30)
-            
-            if resp.status_code == 200 and "Attention Required" not in resp.text and "Just a moment" not in resp.text:
-                return resp.text
-            else:
-                print(f"HTTP Status: {resp.status_code} (Cloudflare block oder Fehler). Warte 3s...")
-                time.sleep(3)
-        except Exception as e:
-            print(f"Fehler bei Versuch {attempt}: {e}")
-            time.sleep(3)
-            
-    return None
+    headers = {"Content-Type": "application/json"}
+
+    try:
+        print("Sende Request an lokalen FlareSolverr-Service...")
+        resp = requests.post(FLARESOLVERR_URL, json=payload, headers=headers, timeout=70)
+        data = resp.json()
+        
+        if data.get("status") == "ok":
+            solution = data.get("solution", {})
+            status_code = solution.get("status")
+            print(f"FlareSolverr Response Status: {status_code}")
+            return solution.get("response")
+        else:
+            print(f"FlareSolverr Fehler: {data.get('message')}")
+            return None
+    except Exception as e:
+        print(f"Verbindungsfehler zu FlareSolverr: {e}")
+        return None
 
 def run_scraper():
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
@@ -89,7 +86,7 @@ def run_scraper():
         print(f"Scrape: {item['name']}")
         print(f"URL: {item['url']}")
 
-        html = fetch_page_with_retry(item["url"])
+        html = fetch_html_via_flaresolverr(item["url"])
         if not html:
             print(f"Konnte {item['name']} nicht abrufen.")
             continue
