@@ -42,12 +42,12 @@ def send_telegram_alert(product_name, price, target, url):
 def parse_price(price_str):
     if not price_str:
         return None
-    clean = price_str.replace("€", "").replace("\xa0", "").strip()
+    clean = price_str.replace("€", "").replace("+", "").replace("\xa0", "").strip()
     clean = clean.replace(".", "")
     clean = clean.replace(",", ".")
     try:
         val = float(clean)
-        return val if val > 0 else None
+        return val if val >= 0 else None
     except ValueError:
         return None
 
@@ -60,7 +60,6 @@ def login_to_cardmarket():
     print(f"Versuche Login für Benutzer '{CM_USERNAME}' über FlareSolverr...")
     login_url = "https://www.cardmarket.com/de/Pokemon"
     
-    # Form-Data URL-encoded für den Cardmarket Login-POST
     post_data = urllib.parse.urlencode({
         "username": CM_USERNAME,
         "userPassword": CM_PASSWORD
@@ -126,7 +125,6 @@ def run_scraper():
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = json.load(f)
 
-    # 1. Vorab einloggen und Cookies sichern
     session_cookies = login_to_cardmarket()
 
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -167,46 +165,56 @@ def run_scraper():
 
         # Angebote aus Tabelle extrahieren
         offer_rows = soup.select("div[id^='articleRow'], .article-row")
-        parsed_prices = []
+        
+        parsed_item_prices = []
+        parsed_total_prices = []
 
         for row in offer_rows:
-            price_elem = row.select_one(".col-price, .price-container, .font-weight-bold")
-            if price_elem:
-                p_text = price_elem.get_text(strip=True)
-                match = re.search(r"([\d.]+,\d{2})\s*€?", p_text)
-                if match:
-                    val = parse_price(match.group(1))
-                    if val and val > 1.0:
-                        parsed_prices.append(val)
+            price_cell = row.select_one(".col-price, .price-container")
+            text_to_search = price_cell.get_text(" ", strip=True) if price_cell else row.get_text(" ", strip=True)
+            
+            # Alle Euro-Beträge in der Preis-Zelle finden (z. B. "359,99 €" und "+ 6,13 €")
+            euro_matches = re.findall(r"(\d+(?:\.\d{3})*,\d{2})\s*€", text_to_search)
+            
+            if euro_matches:
+                item_price = parse_price(euro_matches[0])
+                if item_price and item_price > 1.0:
+                    shipping_cost = 0.0
+                    if len(euro_matches) > 1:
+                        parsed_ship = parse_price(euro_matches[1])
+                        if parsed_ship is not None:
+                            shipping_cost = parsed_ship
+                    
+                    total_price = round(item_price + shipping_cost, 2)
+                    
+                    parsed_item_prices.append(item_price)
+                    parsed_total_prices.append(total_price)
 
-        if not parsed_prices:
-            for row in offer_rows:
-                matches = re.findall(r"(\d+(?:\.\d{3})*,\d{2})\s*€", row.get_text())
-                for m in matches:
-                    val = parse_price(m)
-                    if val and val > 1.0:
-                        parsed_prices.append(val)
-                        break
+        print(f"Extrahierte Artikelpreise ({len(parsed_item_prices)}): {parsed_item_prices[:3]}...")
+        print(f"Extrahierte Gesamtpreise  ({len(parsed_total_prices)}): {parsed_total_prices[:3]}...")
 
-        sorted_prices = sorted(parsed_prices)
-        print(f"Extrahierte Preise ({len(sorted_prices)}): {sorted_prices[:5]}...")
+        if parsed_item_prices:
+            # Günstigste Einzelpreise (Rang 1 bis 3)
+            c1 = parsed_item_prices[0] if len(parsed_item_prices) > 0 else None
+            c2 = parsed_item_prices[1] if len(parsed_item_prices) > 1 else None
+            c3 = parsed_item_prices[2] if len(parsed_item_prices) > 2 else None
 
-        if sorted_prices:
-            c1 = sorted_prices[0] if len(sorted_prices) > 0 else None
-            c2 = sorted_prices[1] if len(sorted_prices) > 1 else None
-            c3 = sorted_prices[2] if len(sorted_prices) > 2 else None
-
-            # Durchschnittsberechnung nach Typ
+            # Durchschnittsberechnung nach Typ (Single vs Case)
             if p_type == "case":
-                avg_robust = calc_mean(sorted_prices[1:5])
-                avg_market = calc_mean(sorted_prices[:10])
-                print(f"Case-Logik  -> Top 1: {c1}€ | Robust (Rang 2-5): {avg_robust}€ | Markt (Rang 1-10): {avg_market}€")
+                avg_robust = calc_mean(parsed_item_prices[1:5])
+                avg_market = calc_mean(parsed_item_prices[:10])
+                avg_robust_shipping = calc_mean(parsed_total_prices[1:5])
+                avg_market_shipping = calc_mean(parsed_total_prices[:10])
             else:
-                avg_robust = calc_mean(sorted_prices[2:10])
-                avg_market = calc_mean(sorted_prices[:15])
-                print(f"Single-Logik -> Top 1: {c1}€ | Robust (Rang 3-10): {avg_robust}€ | Markt (Rang 1-15): {avg_market}€")
+                avg_robust = calc_mean(parsed_item_prices[2:10])
+                avg_market = calc_mean(parsed_item_prices[:15])
+                avg_robust_shipping = calc_mean(parsed_total_prices[2:10])
+                avg_market_shipping = calc_mean(parsed_total_prices[:15])
 
-            # Alert prüfen
+            print(f"Artikelpreise: Robust={avg_robust}€ | Markt={avg_market}€")
+            print(f"Inkl. Versand: Robust={avg_robust_shipping}€ | Markt={avg_market_shipping}€")
+
+            # Alert prüfen (auf Basis von cheapest_1)
             if c1 and target and c1 <= target:
                 print(f"-> Alert getriggert: {c1}€ <= {target}€")
                 send_telegram_alert(p_name, c1, target, p_url)
@@ -220,7 +228,9 @@ def run_scraper():
                 "cheapest_2": c2,
                 "cheapest_3": c3,
                 "avg_robust": avg_robust,
-                "avg_market": avg_market
+                "avg_market": avg_market,
+                "avg_robust_shipping": avg_robust_shipping,
+                "avg_market_shipping": avg_market_shipping
             })
 
     # In CSV schreiben
