@@ -1,17 +1,19 @@
-timestamp,product_name,avg_item_price,available_items,cheapest_total_1,cheapest_total_2,cheapest_total_3,product_type,cheapest_1,cheapest_2,cheapest_3,avg_robust,avg_market
-2026-08-29 11:30:33,Pokemon Destined Rivals Booster Display (Eng),338.89,1361,650.0,674.0,674.02,,,,,,
-2026-08-29 11:30:33,Pokemon Destined Rivals Booster Display Case (Eng),139.66,174,18.46,200.0,258.0,,,,,,
-2026-08-29 11:38:18,Pokemon Destined Rivals Booster Display (Eng),338.89,1361,325.0,337.0,337.01,,,,,,
-2026-08-29 11:38:18,Pokemon Destined Rivals Booster Display Case (Eng),2139.66,174,2100.0,2129.0,2189.99,,,,,,
-2026-08-29 11:49:55,Pokemon Destined Rivals Booster Display (Eng),338.9,1361,325.0,337.0,337.01,,,,,,
-2026-08-29 11:49:55,Pokemon Destined Rivals Booster Display Case (Eng),2169.66,174,2129.0,2189.99,2190.0,,,,,,
-2026-08-29 13:41:59,Pokemon Destined Rivals Booster Display (Eng),345.9,1361,339.99,339.99,343.99,,,,,,
-2026-08-29 13:41:59,Pokemon Destined Rivals Booster Display Case (Eng),2169.66,174,2129.0,2189.99,2190.0,,,,,,
-2026-08-29 14:13:36,Pokemon Destined Rivals Booster Display (Eng),345.9,1361,339.99,339.99,343.99,,,,,,
-2026-08-29 14:13:36,Pokemon Destined Rivals Booster Display Case (Eng),2169.66,174,2129.0,2189.99,2190.0,,,,,,
-2026-08-29 14:53:04,Pokemon Destined Rivals Booster Display (Eng),,1361,,,,single,339.99,339.99,343.99,347.37,347.26
-2026-08-29 14:53:04,Pokemon Destined Rivals Booster Display Case (Eng),,174,,,,case,2129.0,2189.99,2190.0,2195.0,2203.4
-2026-08-29 16:08:35,Pokemon Destined Rivals Booster Display (Eng),,1361,,,,single,344.0,345.0,349.0,349.62,350.33
-2026-08-29 16:08:35,Pokemon Destined Rivals Booster Display Case (Eng),,174,,,,case,2129.0,2189.99,2190.0,2195.0,2203.4
-2026-08-29 16:24:47,Pokemon Destined Rivals Booster Display (Eng),,1361,,,,single,339.99,339.99,343.99,347.37,347.26
-2026-08-29 16:24:47,Pokemon Destined Rivals Booster Display Case (Eng),,174,,,,case,2129.0,2189.99,2190.0,2195.0,2214.8
+timestamp,product_name,avg_item_price,available_items,cheapest_total_1,cheapest_total_2,cheapest_total_3,product_type,cheapest_1,cheapest_2,cheapest_3,avg_robust,avg_market,avg_robust_shipping,avg_market_shipping
+2026-08-29 11:30:33,Pokemon Destined Rivals Booster Display (Eng),338.89,1361,650.0,674.0,674.02,,,,,,,,
+2026-08-29 11:30:33,Pokemon Destined Rivals Booster Display Case (Eng),139.66,174,18.46,200.0,258.0,,,,,,,,
+2026-08-29 11:38:18,Pokemon Destined Rivals Booster Display (Eng),338.89,1361,325.0,337.0,337.01,,,,,,,,
+2026-08-29 11:38:18,Pokemon Destined Rivals Booster Display Case (Eng),2139.66,174,2100.0,2129.0,2189.99,,,,,,,,
+2026-08-29 11:49:55,Pokemon Destined Rivals Booster Display (Eng),338.9,1361,325.0,337.0,337.01,,,,,,,,
+2026-08-29 11:49:55,Pokemon Destined Rivals Booster Display Case (Eng),2169.66,174,2129.0,2189.99,2190.0,,,,,,,,
+2026-08-29 13:41:59,Pokemon Destined Rivals Booster Display (Eng),345.9,1361,339.99,339.99,343.99,,,,,,,,
+2026-08-29 13:41:59,Pokemon Destined Rivals Booster Display Case (Eng),2169.66,174,2129.0,2189.99,2190.0,,,,,,,,
+2026-08-29 14:13:36,Pokemon Destined Rivals Booster Display (Eng),345.9,1361,339.99,339.99,343.99,,,,,,,,
+2026-08-29 14:13:36,Pokemon Destined Rivals Booster Display Case (Eng),2169.66,174,2129.0,2189.99,2190.0,,,,,,,,
+2026-08-29 14:53:04,Pokemon Destined Rivals Booster Display (Eng),,1361,,,,single,339.99,339.99,343.99,347.37,347.26,,
+2026-08-29 14:53:04,Pokemon Destined Rivals Booster Display Case (Eng),,174,,,,case,2129.0,2189.99,2190.0,2195.0,2203.4,,
+2026-08-29 16:08:35,Pokemon Destined Rivals Booster Display (Eng),,1361,,,,single,344.0,345.0,349.0,349.62,350.33,,
+2026-08-29 16:08:35,Pokemon Destined Rivals Booster Display Case (Eng),,174,,,,case,2129.0,2189.99,2190.0,2195.0,2203.4,,
+2026-08-29 16:24:47,Pokemon Destined Rivals Booster Display (Eng),,1361,,,,single,339.99,339.99,343.99,347.37,347.26,,
+2026-08-29 16:24:47,Pokemon Destined Rivals Booster Display Case (Eng),,174,,,,case,2129.0,2189.99,2190.0,2195.0,2214.8,,
+2026-08-29 16:34:18,Pokemon Destined Rivals Booster Display (Eng),,1361,,,,single,339.99,339.99,343.99,347.37,347.26,347.37,347.26
+2026-08-29 16:34:18,Pokemon Destined Rivals Booster Display Case (Eng),,174,,,,case,2129.0,2189.99,2190.0,2195.0,2214.8,2195.0,2214.8
