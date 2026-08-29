@@ -18,7 +18,7 @@ def send_telegram_alert(product_name, price, target, url):
         return
     text = (
         f"🚨 *PREIS-ALERT: {product_name}* 🚨\n\n"
-        f"💰 Günstigster Endpreis: *{price:.2f} €* (inkl. Versand)\n"
+        f"💰 Günstigster Preis: *{price:.2f} €*\n"
         f"🎯 Zielpreis: *{target:.2f} €*\n\n"
         f"🔗 [Direkt zum Angebot]({url})"
     )
@@ -36,18 +36,24 @@ def send_telegram_alert(product_name, price, target, url):
         print(f"Telegram-Fehler: {e}")
 
 def parse_price(price_str):
+    """Konvertiert '2.100,00 €' oder '159,99 €' sauber in float 2100.00 bzw. 159.99"""
     if not price_str:
         return None
-    cleaned = re.sub(r"[^\d,]", "", price_str).replace(",", ".")
+    # Entfernt Währungssymbole und Leerzeichen
+    clean = price_str.replace("€", "").replace("\xa0", "").strip()
+    # Entfernt Tausenderpunkte (2.100,00 -> 2100,00)
+    clean = clean.replace(".", "")
+    # Ersetzt Komma durch Dezimalpunkt (2100,00 -> 2100.00)
+    clean = clean.replace(",", ".")
     try:
-        return float(cleaned)
+        val = float(clean)
+        return val if val > 0 else None
     except ValueError:
         return None
 
 def fetch_html_via_proxy(target_url):
-    """Ruft Cardmarket über ScrapeOps Residential Proxy auf, um Cloudflare zu umgehen."""
     if not SCRAPEOPS_API_KEY:
-        print("⚠️ FEHLER: SCRAPEOPS_API_KEY Secret fehlt in GitHub!")
+        print("⚠️ FEHLER: SCRAPEOPS_API_KEY Secret fehlt!")
         return None
     
     proxy_url = "https://proxy.scrapeops.io/v1/"
@@ -86,13 +92,12 @@ def run_scraper():
             continue
 
         soup = BeautifulSoup(html, "html.parser")
-        title = soup.find("title")
-        print(f"Seitentitel: {title.get_text(strip=True) if title else 'Kein Titel'}")
 
-        # 1. Verfügbare Artikel auslesen
+        # 1. Verfügbare Artikel aus Infobox auslesen
         avail_items = 0
         for dt in soup.find_all("dt"):
-            if "Verfügbare Artikel" in dt.get_text() or "Available items" in dt.get_text():
+            txt = dt.get_text(strip=True)
+            if "Verfügbare Artikel" in txt or "Available items" in txt:
                 dd = dt.find_next_sibling("dd")
                 if dd:
                     digits = re.sub(r"[^\d]", "", dd.get_text())
@@ -100,42 +105,51 @@ def run_scraper():
                         avail_items = int(digits)
                     break
 
-        if avail_items == 0:
-            match = re.search(r"(?:Verfügbare Artikel|Available items)[\s:]*([0-9.]+)", html)
-            if match:
-                avail_items = int(match.group(1).replace(".", ""))
-
         print(f"Verfügbare Menge: {avail_items}")
 
-        # 2. Angebote auslesen
-        parsed_offers = []
-        rows = soup.select(".article-row, div[id^='articleRow']")
-        for row in rows:
-            txt = row.get_text(separator=" ")
-            prices = re.findall(r"(\d+(?:,\d{2})?)\s*€", txt)
-            if prices:
-                item_p = parse_price(prices[0])
-                if item_p and item_p > 0:
-                    ship_p = parse_price(prices[1]) if len(prices) > 1 else 0.0
-                    parsed_offers.append({
-                        "item_price": item_p,
-                        "total_price": item_p + ship_p
-                    })
+        # 2. Angebote gezielt aus der Angebotstabelle extrahieren
+        # Filtert nur Zeilen mit articleRow-IDs (schließt Info-Boxen & Diagramme aus)
+        offer_rows = soup.select("div[id^='articleRow'], .article-row")
+        parsed_prices = []
 
-        print(f"Gefundene Angebote: {len(parsed_offers)}")
+        for row in offer_rows:
+            # Selektiert den Preis in der Angebotszeile
+            price_elem = row.select_one(".col-price, .price-container, .font-weight-bold")
+            if price_elem:
+                p_text = price_elem.get_text(strip=True)
+                match = re.search(r"([\d.]+,\d{2})\s*€?", p_text)
+                if match:
+                    val = parse_price(match.group(1))
+                    if val and val > 1.0:
+                        parsed_prices.append(val)
 
-        if parsed_offers:
+        # Fallback, falls Klassen abweichen: Alle Preisblöcke innerhalb von Tabellenzeilen
+        if not parsed_prices:
+            for row in offer_rows:
+                matches = re.findall(r"(\d+(?:\.\d{3})*,\d{2})\s*€", row.get_text())
+                for m in matches:
+                    val = parse_price(m)
+                    if val and val > 1.0:
+                        parsed_prices.append(val)
+                        break  # Nur erster gefundener Preis pro Verkäuferzeile
+
+        print(f"Extrahierte Angebotspreise ({len(parsed_prices)}): {parsed_prices[:5]}...")
+
+        if parsed_prices:
+            # 3. Durchschnittsberechnung (Top 10 bei single, Top 3 bei case)
             limit = 10 if item.get("type") == "single" else 3
-            avg_slice = [o["item_price"] for o in parsed_offers[:limit]]
+            avg_slice = parsed_prices[:limit]
             avg_price = round(sum(avg_slice) / len(avg_slice), 2)
 
-            sorted_by_total = sorted(parsed_offers, key=lambda x: x["total_price"])
-            c1 = sorted_by_total[0]["total_price"] if len(sorted_by_total) > 0 else None
-            c2 = sorted_by_total[1]["total_price"] if len(sorted_by_total) > 1 else None
-            c3 = sorted_by_total[2]["total_price"] if len(sorted_by_total) > 2 else None
+            # 4. Top 3 Preise
+            sorted_prices = sorted(parsed_prices)
+            c1 = sorted_prices[0] if len(sorted_prices) > 0 else None
+            c2 = sorted_prices[1] if len(sorted_prices) > 1 else None
+            c3 = sorted_prices[2] if len(sorted_prices) > 2 else None
 
-            print(f"-> Top 1: {c1}€ | Schnitt: {avg_price}€")
+            print(f"-> Top 1: {c1}€ | Top 2: {c2}€ | Top 3: {c3}€ | Schnitt ({limit}): {avg_price}€")
 
+            # 5. Alert prüfen
             target = item.get("target_price", 0)
             if c1 and c1 <= target:
                 print(f"-> Alert getriggert: {c1}€ <= {target}€")
@@ -157,11 +171,12 @@ def run_scraper():
         df_new = pd.DataFrame(results)
         if os.path.exists(CSV_PATH) and os.path.getsize(CSV_PATH) > 0:
             df_existing = pd.read_csv(CSV_PATH)
+            # Bereinige eventuell fehlerhafte Vorwerte bei Bedarf
             df_combined = pd.concat([df_existing, df_new], ignore_index=True)
             df_combined.to_csv(CSV_PATH, index=False)
         else:
             df_new.to_csv(CSV_PATH, index=False)
-        print("\n=> Daten erfolgreich in data/data.csv gespeichert!")
+        print("\n=> data/data.csv wurde erfolgreich aktualisiert!")
     else:
         print("\n=> Keine Daten erfasst.")
 
