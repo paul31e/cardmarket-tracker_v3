@@ -25,6 +25,7 @@ jobs:
         env:
           BOTFATHER: ${{ secrets.BOTFATHER }}
           TELEGRAMCHATID: ${{ secrets.TELEGRAMCHATID }}
+          SCRAPEOPS_API_KEY: ${{ secrets.SCRAPEOPS_API_KEY }}
         run: python scraper.py
 
       - name: Commit and Push Data
