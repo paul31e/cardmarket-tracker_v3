@@ -33,50 +33,66 @@
       </div>
     </header>
 
-    <!-- KPI Metric Cards: Preis & Renditen -->
+    <!-- KPI Metric Cards: Preis & Renditen (5er Grid) -->
     <div>
-      <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Preisentwicklung (Ø Robust inkl. Versand) & ATL</h2>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-          <span class="text-xs text-slate-400 font-medium">All-Time Low (ATL seit Trackingbeginn)</span>
-          <div class="text-lg font-bold text-emerald-400 mt-1" id="statATL">-</div>
-          <span class="text-[11px] text-slate-500" id="statATLDate">-</span>
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Preisentwicklung (Ø Robust inkl. Versand)</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
+          <span class="text-xs text-slate-400 font-medium">Aktueller Ø Robust</span>
+          <div class="text-lg font-bold text-indigo-400 mt-1" id="statCurrentPrice">-</div>
+          <span class="text-[11px] text-slate-500">inkl. Versand</span>
         </div>
-        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
           <span class="text-xs text-slate-400 font-medium">7-Tage Rendite</span>
-          <div class="text-lg font-bold text-slate-200 mt-1" id="statPrice7d">-</div>
+          <div class="text-base font-bold text-slate-200 mt-1" id="statPrice7d">-</div>
+          <span class="text-[11px] text-slate-500">Trend 1 Woche</span>
         </div>
-        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
           <span class="text-xs text-slate-400 font-medium">30-Tage Rendite</span>
-          <div class="text-lg font-bold text-slate-200 mt-1" id="statPrice30d">-</div>
+          <div class="text-base font-bold text-slate-200 mt-1" id="statPrice30d">-</div>
+          <span class="text-[11px] text-slate-500">Trend 1 Monat</span>
         </div>
-        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
           <span class="text-xs text-slate-400 font-medium">12-Monate Rendite</span>
-          <div class="text-lg font-bold text-slate-200 mt-1" id="statPrice12m">-</div>
+          <div class="text-base font-bold text-slate-200 mt-1" id="statPrice12m">-</div>
+          <span class="text-[11px] text-slate-500">Trend 1 Jahr</span>
+        </div>
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
+          <span class="text-xs text-slate-400 font-medium">Rekorde (ATL / ATH)</span>
+          <div class="text-[12px] font-semibold text-emerald-400 mt-1" id="statPriceATL">-</div>
+          <div class="text-[12px] font-semibold text-rose-400" id="statPriceATH">-</div>
         </div>
       </div>
     </div>
 
-    <!-- KPI Metric Cards: Bestands-Dynamik -->
+    <!-- KPI Metric Cards: Bestands-Dynamik (5er Grid) -->
     <div>
       <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Verfügbarkeits-Dynamik (Bestandsänderung)</h2>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
           <span class="text-xs text-slate-400 font-medium">Aktueller Bestand</span>
           <div class="text-lg font-bold text-amber-400 mt-1" id="statCurrentAvail">-</div>
           <span class="text-[11px] text-slate-500">am Markt gelistet</span>
         </div>
-        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
           <span class="text-xs text-slate-400 font-medium">Bestand Δ (7 Tage)</span>
-          <div class="text-lg font-bold text-slate-200 mt-1" id="statAvail7d">-</div>
+          <div class="text-base font-bold text-slate-200 mt-1" id="statAvail7d">-</div>
+          <span class="text-[11px] text-slate-500">Netto-Veränderung</span>
         </div>
-        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
           <span class="text-xs text-slate-400 font-medium">Bestand Δ (30 Tage)</span>
-          <div class="text-lg font-bold text-slate-200 mt-1" id="statAvail30d">-</div>
+          <div class="text-base font-bold text-slate-200 mt-1" id="statAvail30d">-</div>
+          <span class="text-[11px] text-slate-500">Netto-Veränderung</span>
         </div>
-        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
           <span class="text-xs text-slate-400 font-medium">Bestand Δ (12 Monate)</span>
-          <div class="text-lg font-bold text-slate-200 mt-1" id="statAvail12m">-</div>
+          <div class="text-base font-bold text-slate-200 mt-1" id="statAvail12m">-</div>
+          <span class="text-[11px] text-slate-500">Netto-Veränderung</span>
+        </div>
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
+          <span class="text-xs text-slate-400 font-medium">Bestand Min / Max</span>
+          <div class="text-[12px] font-semibold text-rose-400 mt-1" id="statAvailMin">-</div>
+          <div class="text-[12px] font-semibold text-emerald-400" id="statAvailMax">-</div>
         </div>
       </div>
     </div>
@@ -111,7 +127,7 @@
       <div id="legendTooltip" class="absolute pointer-events-none hidden z-30 bg-slate-950/95 border border-slate-700/80 text-xs text-slate-200 px-3 py-2 rounded-xl shadow-xl backdrop-blur-sm max-w-xs transition-opacity duration-150"></div>
 
       <div class="mt-4 text-xs text-slate-500 text-center">
-        💡 Klicke auf Einträge in der Legende zum Aus-/Einblenden. Hover über die Legende für Berechnungsformeln oder über Punkte für Top-3-Angebote.
+        💡 Klicke auf Einträge in der Legende zum Aus-/Einblenden. Große Punkte im Chart markieren Allzeittiefs (ATL) und Allzeithochs (ATH).
       </div>
     </div>
 
@@ -197,7 +213,6 @@
     async function loadData() {
       setRandomQuote();
 
-      // Config laden für Direktlinks
       try {
         const confRes = await fetch('config.json?v=' + new Date().getTime());
         if (confRes.ok) {
@@ -271,7 +286,7 @@
         ? 'text-emerald-400' 
         : (diff < 0 ? 'text-rose-400' : 'text-slate-300');
 
-      return `<span class="${colorClass}">${pctFormatted}</span> <span class="text-xs text-slate-400 font-normal">(${valFormatted})</span>`;
+      return `<span class="${colorClass}">${pctFormatted}</span> <span class="text-[11px] text-slate-400 font-normal block sm:inline">(${valFormatted})</span>`;
     }
 
     function updateDashboard(productName) {
@@ -284,7 +299,7 @@
       const latest = filtered[filtered.length - 1];
       const pType = (latest.product_type || 'single').toLowerCase();
 
-      // Header über Graph aktualisieren
+      // Header über Graph
       document.getElementById('chartProductTitle').textContent = productName;
       const badge = document.getElementById('chartProductType');
       badge.textContent = pType === 'case' ? '📦 Case' : 'Single';
@@ -302,29 +317,58 @@
         linkBtn.classList.add('hidden');
       }
 
-      // 1. ATL
-      let atl = Infinity;
-      let atlRow = null;
+      // Kasten 1: Aktueller Preis & Bestand
+      const currentPrice = latest.avg_robust_shipping;
+      document.getElementById('statCurrentPrice').textContent = currentPrice ? `${currentPrice.toFixed(2)} €` : '-';
+      document.getElementById('statCurrentAvail').textContent = latest.available_items != null ? `${latest.available_items} Stk.` : '-';
+
+      // Kasten 5: Preis Rekorde (ATL / ATH)
+      let priceATL = Infinity, priceATH = -Infinity;
+      let rowPriceATL = null, rowPriceATH = null;
+
+      // Kasten 5: Bestand Rekorde (Min / Max)
+      let availMin = Infinity, availMax = -Infinity;
+      let rowAvailMin = null, rowAvailMax = null;
+
       filtered.forEach(r => {
-        const p = r.cheapest_1 || r.avg_robust_shipping;
-        if (p && p < atl) {
-          atl = p;
-          atlRow = r;
+        const p = r.avg_robust_shipping;
+        if (p != null) {
+          if (p < priceATL) { priceATL = p; rowPriceATL = r; }
+          if (p > priceATH) { priceATH = p; rowPriceATH = r; }
+        }
+
+        const a = r.available_items;
+        if (a != null) {
+          if (a < availMin) { availMin = a; rowAvailMin = r; }
+          if (a > availMax) { availMax = a; rowAvailMax = r; }
         }
       });
 
-      if (atlRow) {
-        document.getElementById('statATL').textContent = `${atl.toFixed(2)} €`;
-        document.getElementById('statATLDate').textContent = `am ${atlRow.timestamp.substring(0, 10)}`;
+      if (rowPriceATL) {
+        document.getElementById('statPriceATL').innerHTML = `📉 ATL: ${priceATL.toFixed(2)} € <span class="text-[10px] text-slate-500 font-normal">(${rowPriceATL.timestamp.substring(2, 10)})</span>`;
       } else {
-        document.getElementById('statATL').textContent = '-';
-        document.getElementById('statATLDate').textContent = '-';
+        document.getElementById('statPriceATL').textContent = '-';
       }
 
-      // Aktueller Bestand
-      document.getElementById('statCurrentAvail').textContent = latest.available_items != null ? `${latest.available_items} Stk.` : '-';
+      if (rowPriceATH) {
+        document.getElementById('statPriceATH').innerHTML = `📈 ATH: ${priceATH.toFixed(2)} € <span class="text-[10px] text-slate-500 font-normal">(${rowPriceATH.timestamp.substring(2, 10)})</span>`;
+      } else {
+        document.getElementById('statPriceATH').textContent = '-';
+      }
 
-      // 2. Rendite-Zeiträume
+      if (rowAvailMin) {
+        document.getElementById('statAvailMin').innerHTML = `🔻 Min: ${availMin} Stk. <span class="text-[10px] text-slate-500 font-normal">(${rowAvailMin.timestamp.substring(2, 10)})</span>`;
+      } else {
+        document.getElementById('statAvailMin').textContent = '-';
+      }
+
+      if (rowAvailMax) {
+        document.getElementById('statAvailMax').innerHTML = `🔺 Max: ${availMax} Stk. <span class="text-[10px] text-slate-500 font-normal">(${rowAvailMax.timestamp.substring(2, 10)})</span>`;
+      } else {
+        document.getElementById('statAvailMax').textContent = '-';
+      }
+
+      // Rendite-Zeiträume
       const latestTime = new Date(latest.timestamp.replace(' ', 'T')).getTime();
       const ms7d = 7 * 24 * 60 * 60 * 1000;
       const ms30d = 30 * 24 * 60 * 60 * 1000;
@@ -337,7 +381,6 @@
       const row12m = (latestTime - new Date(filtered[0].timestamp.replace(' ', 'T')).getTime() >= ms12m * 0.7) 
         ? findClosestRecord(filtered, latestTime - ms12m) : null;
 
-      const currentPrice = latest.avg_robust_shipping;
       document.getElementById('statPrice7d').innerHTML = row7d ? formatDelta(currentPrice, row7d.avg_robust_shipping, true) : '-';
       document.getElementById('statPrice30d').innerHTML = row30d ? formatDelta(currentPrice, row30d.avg_robust_shipping, true) : '-';
       document.getElementById('statPrice12m').innerHTML = row12m ? formatDelta(currentPrice, row12m.avg_robust_shipping, true) : '-';
@@ -348,6 +391,30 @@
       document.getElementById('statAvail12m').innerHTML = row12m ? formatDelta(currentAvail, row12m.available_items, false) : '-';
 
       renderChart(filtered, pType);
+    }
+
+    // Hilfsfunktion: Ermittelt Highlight-Radien und Farben für ATL/ATH-Punkte
+    function getPointStyling(values, isMinBest = true) {
+      let minVal = Infinity, maxVal = -Infinity;
+      let minIdx = -1, maxIdx = -1;
+
+      values.forEach((v, idx) => {
+        if (v != null) {
+          if (v < minVal) { minVal = v; minIdx = idx; }
+          if (v > maxVal) { maxVal = v; maxIdx = idx; }
+        }
+      });
+
+      const radii = values.map((_, idx) => (idx === minIdx || idx === maxIdx) ? 6 : 1.5);
+      const hoverRadii = values.map((_, idx) => (idx === minIdx || idx === maxIdx) ? 8 : 5);
+      const borderColors = values.map((_, idx) => {
+        if (idx === minIdx) return '#10b981'; // Grün für Min / ATL
+        if (idx === maxIdx) return '#f43f5e'; // Rot für Max / ATH
+        return '#ffffff';
+      });
+      const borderWidths = values.map((_, idx) => (idx === minIdx || idx === maxIdx) ? 2.5 : 0);
+
+      return { radii, hoverRadii, borderColors, borderWidths };
     }
 
     function renderChart(data, pType) {
@@ -361,84 +428,105 @@
         chartInstance.destroy();
       }
 
-      // Berechnungserklärungen passend zum Produkttyp (Single vs. Case)
       const formulaExplanations = {
         'Robust (inkl. Versand)': pType === 'case'
           ? '<b>Ø Robust (inkl. Versand):</b> Mittelwert der Top 2 bis 5 günstigsten Gesamtpreise.'
           : '<b>Ø Robust (inkl. Versand):</b> Mittelwert der Top 3 bis 10 günstigsten Gesamtpreise.',
         'Markt (inkl. Versand)': pType === 'case'
-          ? '<b>Ø Markt (inkl. Versand):</b> Ungewichteter Mittelwert der Top 10 günstigsten Gesamtpreise.'
-          : '<b>Ø Markt (inkl. Versand):</b> Ungewichteter Mittelwert der Top 15 günstigsten Gesamtpreise.',
+          ? '<b>Ø Markt (inkl. Versand):</b> Mittelwert der Top 10 günstigsten Gesamtpreise.'
+          : '<b>Ø Markt (inkl. Versand):</b> Mittelwert der Top 15 günstigsten Gesamtpreise.',
         'Robust (ohne Versand)': pType === 'case'
           ? '<b>Ø Robust (ohne Versand):</b> Mittelwert der reinen Artikelpreise auf Rang 2 bis 5.'
           : '<b>Ø Robust (ohne Versand):</b> Mittelwert der reinen Artikelpreise auf Rang 3 bis 10.',
         'Markt (ohne Versand)': pType === 'case'
           ? '<b>Ø Markt (ohne Versand):</b> Mittelwert der Top 10 reinen Artikelpreise.'
           : '<b>Ø Markt (ohne Versand):</b> Mittelwert der Top 15 reinen Artikelpreise.',
-        'Verfügbare Menge': '<b>Verfügbare Artikel:</b> Gesamtzahl aller auf Cardmarket gelisteten Exemplare.'
+        'Verfügbare Menge': '<b>Verfügbare Artikel:</b> Gesamtzahl aller aktuell gelisteten Exemplare.'
       };
+
+      const pRobustShipData = data.map(d => d.avg_robust_shipping);
+      const pMarketShipData = data.map(d => d.avg_market_shipping);
+      const pRobustData = data.map(d => d.avg_robust);
+      const pMarketData = data.map(d => d.avg_market);
+      const availData = data.map(d => d.available_items);
+
+      const styleRobustShip = getPointStyling(pRobustShipData);
+      const styleMarketShip = getPointStyling(pMarketShipData);
+      const styleRobust = getPointStyling(pRobustData);
+      const styleMarket = getPointStyling(pMarketData);
+      const styleAvail = getPointStyling(availData);
 
       const datasets = [
         {
           label: 'Robust (inkl. Versand)',
-          data: data.map(d => d.avg_robust_shipping),
+          data: pRobustShipData,
           borderColor: '#818cf8',
           backgroundColor: '#818cf8',
           yAxisID: 'yPrices',
           tension: 0.3,
           borderWidth: 3,
-          pointRadius: 1.5,
-          pointHoverRadius: 5,
+          pointRadius: styleRobustShip.radii,
+          pointHoverRadius: styleRobustShip.hoverRadii,
+          pointBorderColor: styleRobustShip.borderColors,
+          pointBorderWidth: styleRobustShip.borderWidths,
           hidden: datasetVisibilityState['Robust (inkl. Versand)'] || false
         },
         {
           label: 'Markt (inkl. Versand)',
-          data: data.map(d => d.avg_market_shipping),
+          data: pMarketShipData,
           borderColor: '#c084fc',
           backgroundColor: '#c084fc',
           yAxisID: 'yPrices',
           tension: 0.3,
           borderWidth: 3,
-          pointRadius: 1.5,
-          pointHoverRadius: 5,
+          pointRadius: styleMarketShip.radii,
+          pointHoverRadius: styleMarketShip.hoverRadii,
+          pointBorderColor: styleMarketShip.borderColors,
+          pointBorderWidth: styleMarketShip.borderWidths,
           hidden: datasetVisibilityState['Markt (inkl. Versand)'] || false
         },
         {
           label: 'Robust (ohne Versand)',
-          data: data.map(d => d.avg_robust),
+          data: pRobustData,
           borderColor: '#64748b',
           backgroundColor: '#64748b',
           borderDash: [5, 5],
           yAxisID: 'yPrices',
           tension: 0.3,
           borderWidth: 2,
-          pointRadius: 1,
-          pointHoverRadius: 4,
+          pointRadius: styleRobust.radii,
+          pointHoverRadius: styleRobust.hoverRadii,
+          pointBorderColor: styleRobust.borderColors,
+          pointBorderWidth: styleRobust.borderWidths,
           hidden: datasetVisibilityState['Robust (ohne Versand)'] || false
         },
         {
           label: 'Markt (ohne Versand)',
-          data: data.map(d => d.avg_market),
+          data: pMarketData,
           borderColor: '#94a3b8',
           backgroundColor: '#94a3b8',
           borderDash: [5, 5],
           yAxisID: 'yPrices',
           tension: 0.3,
           borderWidth: 2,
-          pointRadius: 1,
-          pointHoverRadius: 4,
+          pointRadius: styleMarket.radii,
+          pointHoverRadius: styleMarket.hoverRadii,
+          pointBorderColor: styleMarket.borderColors,
+          pointBorderWidth: styleMarket.borderWidths,
           hidden: datasetVisibilityState['Markt (ohne Versand)'] || false
         },
         {
           label: 'Verfügbare Menge',
-          data: data.map(d => d.available_items),
+          data: availData,
           borderColor: '#f59e0b',
           backgroundColor: '#f59e0b',
           yAxisID: 'yQuantity',
           tension: 0.2,
           borderWidth: 3,
-          pointRadius: 1.5,
-          pointHoverRadius: 5,
+          pointRadius: styleAvail.radii,
+          pointHoverRadius: styleAvail.hoverRadii,
+          pointBorderColor: styleAvail.borderColors,
+          pointBorderWidth: styleAvail.borderWidths,
           hidden: datasetVisibilityState['Verfügbare Menge'] || false
         }
       ];
