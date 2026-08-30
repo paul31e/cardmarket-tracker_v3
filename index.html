@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GiG - Gescraped ist Geil</title>
   
-  <!-- Tailwind CSS & Chart.js -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -14,8 +13,7 @@
 
   <div class="max-w-6xl mx-auto space-y-6">
     
-    <!-- Top Bar -->
-    <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg">
+    <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg relative z-40">
       <div>
         <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
           📈 GiG - Gescraped ist Geil
@@ -24,8 +22,23 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-3">
-        <select id="productSelect" class="bg-slate-800 border border-slate-700 text-white text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-2.5 outline-none min-w-[240px]">
-        </select>
+        
+        <div class="relative min-w-[280px]" id="searchDropdownWrapper">
+          <button id="dropdownBtn" type="button" onclick="toggleDropdown()" class="w-full bg-slate-800 border border-slate-700 hover:border-slate-600 text-white text-sm rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none transition">
+            <span id="selectedProductText" class="truncate font-medium">Artikel wählen...</span>
+            <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
+
+          <div id="dropdownMenu" class="hidden absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 space-y-2 z-50">
+            <div class="relative">
+              <input type="text" id="productSearchInput" oninput="filterDropdownList()" placeholder="Suchen (z.B. rivals, case)..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+            </div>
+            <div id="dropdownList" class="max-h-60 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+              </div>
+          </div>
+        </div>
         
         <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-md">
           <span>+</span> Artikel hinzufügen
@@ -33,7 +46,6 @@
       </div>
     </header>
 
-    <!-- KPI Metric Cards: Preis & Renditen (5er Grid) -->
     <div>
       <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Preisentwicklung (Ø Robust inkl. Versand)</h2>
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
@@ -63,7 +75,6 @@
       </div>
     </div>
 
-    <!-- KPI Metric Cards: Bestands-Dynamik (5er Grid) -->
     <div>
       <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Verfügbarkeits-Dynamik (Bestandsänderung)</h2>
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
@@ -93,11 +104,9 @@
       </div>
     </div>
 
-    <!-- Chart Container mit Header & Direktlink -->
     <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg relative">
       
-      <!-- Titel & Cardmarket-Link über dem Graph -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-800/80">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 mb-4 border-b border-slate-800/80">
         <div>
           <div class="flex items-center gap-2">
             <h2 class="text-lg font-bold text-white tracking-tight" id="chartProductTitle">-</h2>
@@ -105,21 +114,30 @@
           </div>
           <p class="text-xs text-slate-500 mt-0.5">Zeitlicher Verlauf von Preisen und Marktvolumen</p>
         </div>
-        
-        <a id="chartCmLink" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700/80 hover:border-indigo-500/50 transition shadow-sm w-fit">
-          <span>Auf Cardmarket öffnen</span>
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-          </svg>
-        </a>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="inline-flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold" id="timeFilterButtons">
+            <button onclick="setTimeRange('7d')" data-range="7d" class="time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">7T</button>
+            <button onclick="setTimeRange('30d')" data-range="30d" class="time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">1M</button>
+            <button onclick="setTimeRange('6m')" data-range="6m" class="time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">6M</button>
+            <button onclick="setTimeRange('12m')" data-range="12m" class="time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">1J</button>
+            <button onclick="setTimeRange('ytd')" data-range="ytd" class="time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">YTD</button>
+            <button onclick="setTimeRange('all')" data-range="all" class="time-btn px-2.5 py-1 rounded-lg transition bg-indigo-600 text-white shadow-sm">Alles</button>
+          </div>
+          
+          <a id="chartCmLink" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700/80 hover:border-indigo-500/50 transition shadow-sm w-fit">
+            <span>Auf Cardmarket öffnen</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+            </svg>
+          </a>
+        </div>
       </div>
 
-      <!-- Canvas -->
       <div class="h-[500px] w-full relative">
         <canvas id="priceChart"></canvas>
       </div>
 
-      <!-- Schwebender Legenden-Tooltip für Berechnungsformeln -->
       <div id="legendTooltip" class="absolute pointer-events-none hidden z-30 bg-slate-950/95 border border-slate-700/80 text-xs text-slate-200 px-3 py-2 rounded-xl shadow-xl backdrop-blur-sm max-w-xs transition-opacity duration-150"></div>
 
       <div class="mt-4 text-xs text-slate-500 text-center">
@@ -129,7 +147,6 @@
 
   </div>
 
-  <!-- Modal: Artikel hinzufügen -->
   <div id="addModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
       <div class="flex justify-between items-center pb-2 border-b border-slate-800">
@@ -187,6 +204,8 @@
 
     let globalData = [];
     let configProducts = [];
+    let currentSelectedProduct = "";
+    let currentTimeRange = "all"; // Merkt sich den gewählten Zeitraum-Filter
     let chartInstance = null;
     let datasetVisibilityState = {};
 
@@ -235,28 +254,128 @@
         skipEmptyLines: true,
         complete: function(results) {
           globalData = results.data.filter(row => row.product_name && row.timestamp);
-          initProductDropdown();
+          initSearchableDropdown();
         }
       });
     }
 
-    function initProductDropdown() {
-      const select = document.getElementById('productSelect');
+    // --- Searchable Custom Dropdown ---
+    function initSearchableDropdown() {
       const products = [...new Set(globalData.map(item => item.product_name))];
-
-      select.innerHTML = '';
-      products.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p;
-        opt.textContent = p;
-        select.appendChild(opt);
-      });
-
-      select.addEventListener('change', () => updateDashboard(select.value));
+      renderDropdownItems(products);
 
       if (products.length > 0) {
-        updateDashboard(products[0]);
+        selectProduct(products[0]);
       }
+    }
+
+    function renderDropdownItems(products) {
+      const listContainer = document.getElementById('dropdownList');
+      listContainer.innerHTML = '';
+
+      if (products.length === 0) {
+        listContainer.innerHTML = '<div class="text-xs text-slate-500 p-2 text-center">Kein Artikel gefunden</div>';
+        return;
+      }
+
+      products.forEach(p => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `w-full text-left px-3 py-2 rounded-xl text-xs transition flex items-center justify-between ${
+          p === currentSelectedProduct 
+            ? 'bg-indigo-600 text-white font-medium' 
+            : 'text-slate-300 hover:bg-slate-800'
+        }`;
+        btn.innerHTML = `<span class="truncate">${p}</span>`;
+        btn.onclick = () => {
+          selectProduct(p);
+          toggleDropdown(false);
+        };
+        listContainer.appendChild(btn);
+      });
+    }
+
+    function filterDropdownList() {
+      const query = document.getElementById('productSearchInput').value.toLowerCase();
+      const products = [...new Set(globalData.map(item => item.product_name))];
+      const filtered = products.filter(p => p.toLowerCase().includes(query));
+      renderDropdownItems(filtered);
+    }
+
+    function toggleDropdown(forceState = null) {
+      const menu = document.getElementById('dropdownMenu');
+      const isHidden = menu.classList.contains('hidden');
+      const shouldOpen = forceState !== null ? forceState : isHidden;
+
+      if (shouldOpen) {
+        menu.classList.remove('hidden');
+        document.getElementById('productSearchInput').focus();
+      } else {
+        menu.classList.add('hidden');
+      }
+    }
+
+    // Klick außerhalb schließt das Dropdown
+    document.addEventListener('click', (e) => {
+      const wrapper = document.getElementById('searchDropdownWrapper');
+      if (wrapper && !wrapper.contains(e.target)) {
+        toggleDropdown(false);
+      }
+    });
+
+    function selectProduct(productName) {
+      currentSelectedProduct = productName;
+      document.getElementById('selectedProductText').textContent = productName;
+      
+      // Suchfeld leeren & Liste zurücksetzen
+      document.getElementById('productSearchInput').value = '';
+      filterDropdownList();
+
+      updateDashboard(productName);
+    }
+
+    // --- Zeitraum-Filter (7T, 1M, 6M, 1J, YTD, Alles) ---
+    function setTimeRange(range) {
+      currentTimeRange = range;
+
+      // Button-Styling anpassen
+      document.querySelectorAll('#timeFilterButtons .time-btn').forEach(btn => {
+        if (btn.dataset.range === range) {
+          btn.className = 'time-btn px-2.5 py-1 rounded-lg transition bg-indigo-600 text-white shadow-sm';
+        } else {
+          btn.className = 'time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white';
+        }
+      });
+
+      if (currentSelectedProduct) {
+        updateDashboard(currentSelectedProduct);
+      }
+    }
+
+    function filterDataByTimeRange(data, range) {
+      if (range === 'all' || data.length === 0) return data;
+
+      const latest = data[data.length - 1];
+      const latestTime = new Date(latest.timestamp.replace(' ', 'T')).getTime();
+      let startTime = 0;
+
+      const msDay = 24 * 60 * 60 * 1000;
+
+      if (range === '7d') {
+        startTime = latestTime - 7 * msDay;
+      } else if (range === '30d') {
+        startTime = latestTime - 30 * msDay;
+      } else if (range === '6m') {
+        startTime = latestTime - 180 * msDay;
+      } else if (range === '12m') {
+        startTime = latestTime - 365 * msDay;
+      } else if (range === 'ytd') {
+        const latestDate = new Date(latest.timestamp.replace(' ', 'T'));
+        const ytdStart = new Date(Date.UTC(latestDate.getUTCFullYear(), 0, 1, 0, 0, 0));
+        startTime = ytdStart.getTime();
+      }
+
+      return data.filter(d => new Date(d.timestamp.replace(' ', 'T')).getTime() >= startTime);
     }
 
     function findClosestRecord(data, targetTime) {
@@ -294,13 +413,13 @@
     }
 
     function updateDashboard(productName) {
-      const filtered = globalData
+      const allProductData = globalData
         .filter(d => d.product_name === productName)
         .sort((a, b) => new Date(a.timestamp.replace(' ', 'T')) - new Date(b.timestamp.replace(' ', 'T')));
 
-      if (filtered.length === 0) return;
+      if (allProductData.length === 0) return;
 
-      const latest = filtered[filtered.length - 1];
+      const latest = allProductData[allProductData.length - 1];
       const pType = (latest.product_type || 'single').toLowerCase();
 
       // Header über Graph
@@ -334,7 +453,7 @@
       let availMin = Infinity, availMax = -Infinity;
       let rowAvailMin = null, rowAvailMax = null;
 
-      filtered.forEach(r => {
+      allProductData.forEach(r => {
         const p = r.avg_robust_shipping;
         if (p != null) {
           if (p < priceATL) { priceATL = p; rowPriceATL = r; }
@@ -355,7 +474,7 @@
       }
 
       if (rowPriceATH) {
-        document.getElementById('statPriceATH').innerHTML = `📈 ATH: ${priceATH.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${rowPriceATH.timestamp.substring(2, 10)})</span>`;
+        document.getElementById('statPriceATH').innerHTML = `📈 ATH: ${priceATH.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowPriceATH.timestamp, true)})</span>`;
       } else {
         document.getElementById('statPriceATH').textContent = '-';
       }
@@ -372,18 +491,18 @@
         document.getElementById('statAvailMax').textContent = '-';
       }
 
-      // Rendite-Zeiträume
+      // Rendite-Zeiträume (immer auf Gesamtdaten berechnet)
       const latestTime = new Date(latest.timestamp.replace(' ', 'T')).getTime();
       const ms7d = 7 * 24 * 60 * 60 * 1000;
       const ms30d = 30 * 24 * 60 * 60 * 1000;
       const ms12m = 365 * 24 * 60 * 60 * 1000;
 
-      const row7d = (latestTime - new Date(filtered[0].timestamp.replace(' ', 'T')).getTime() >= ms7d * 0.7) 
-        ? findClosestRecord(filtered, latestTime - ms7d) : null;
-      const row30d = (latestTime - new Date(filtered[0].timestamp.replace(' ', 'T')).getTime() >= ms30d * 0.7) 
-        ? findClosestRecord(filtered, latestTime - ms30d) : null;
-      const row12m = (latestTime - new Date(filtered[0].timestamp.replace(' ', 'T')).getTime() >= ms12m * 0.7) 
-        ? findClosestRecord(filtered, latestTime - ms12m) : null;
+      const row7d = (latestTime - new Date(allProductData[0].timestamp.replace(' ', 'T')).getTime() >= ms7d * 0.7) 
+        ? findClosestRecord(allProductData, latestTime - ms7d) : null;
+      const row30d = (latestTime - new Date(allProductData[0].timestamp.replace(' ', 'T')).getTime() >= ms30d * 0.7) 
+        ? findClosestRecord(allProductData, latestTime - ms30d) : null;
+      const row12m = (latestTime - new Date(allProductData[0].timestamp.replace(' ', 'T')).getTime() >= ms12m * 0.7) 
+        ? findClosestRecord(allProductData, latestTime - ms12m) : null;
 
       document.getElementById('statPrice7d').innerHTML = row7d ? formatDelta(currentPrice, row7d.avg_robust_shipping, true) : '-';
       document.getElementById('statPrice30d').innerHTML = row30d ? formatDelta(currentPrice, row30d.avg_robust_shipping, true) : '-';
@@ -394,7 +513,9 @@
       document.getElementById('statAvail30d').innerHTML = row30d ? formatDelta(currentAvail, row30d.available_items, false) : '-';
       document.getElementById('statAvail12m').innerHTML = row12m ? formatDelta(currentAvail, row12m.available_items, false) : '-';
 
-      renderChart(filtered, pType);
+      // Graph rendern mit gefiltertem Zeitraum
+      const chartFilteredData = filterDataByTimeRange(allProductData, currentTimeRange);
+      renderChart(chartFilteredData, pType);
     }
 
     function getPointStyling(values) {
