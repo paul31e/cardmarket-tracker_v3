@@ -2,11 +2,40 @@ name: TCG Price Scraper
 
 on:
   schedule:
-    - cron: '0 8,20 * * *'
+    # Triggert um 4, 5, 10, 11, 16, 17, 22, 23 Uhr UTC (deckt Sommer- und Winterzeit ab)
+    - cron: '0 4,5,10,11,16,17,22,23 * * *'
   workflow_dispatch:
 
 jobs:
+  check-time:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - name: Prüfe deutsche Uhrzeit (Sommer- & Winterzeit)
+        id: check
+        run: |
+          # Wenn manuell getriggert (workflow_dispatch), immer ausführen
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Aktuelle Stunde in der Zeitzone Europe/Berlin holen
+          HOUR=$(TZ="Europe/Berlin" date +"%H")
+          echo "Aktuelle Stunde in Berlin: $HOUR Uhr"
+
+          # Nur um 00, 06, 12, 18 Uhr deutscher Zeit laufen lassen
+          if [ "$HOUR" = "00" ] || [ "$HOUR" = "06" ] || [ "$HOUR" = "12" ] || [ "$HOUR" = "18" ]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "Kein Zielzeitpunkt. Überspringe Scrape."
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+
   scrape:
+    needs: check-time
+    if: needs.check-time.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     
     services:
