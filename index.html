@@ -14,14 +14,10 @@
 <body class="bg-slate-950 text-slate-100 min-h-screen p-4 md:p-8 font-sans antialiased overflow-x-hidden">
 
   <!-- ================= SEITENLEISTE (DRAWER NAVIGATION) ================= -->
-  <!-- Backdrop Overlay -->
   <div id="sidebarBackdrop" onclick="toggleSidebar(false)" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300"></div>
 
-  <!-- Sidebar Panel -->
   <aside id="sidebarPanel" class="fixed top-0 left-0 bottom-0 w-72 bg-slate-900 border-r border-slate-800 shadow-2xl z-50 transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col justify-between p-5">
     <div class="space-y-6">
-      
-      <!-- Sidebar Header -->
       <div class="flex items-center justify-between pb-4 border-b border-slate-800">
         <div class="flex items-center gap-2">
           <span class="text-xl">📈</span>
@@ -32,34 +28,22 @@
         </button>
       </div>
 
-      <!-- Navigation Items -->
       <nav class="space-y-1.5" id="navMenuList">
-        <button onclick="switchTab('market')" id="navBtn-market" class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-semibold bg-indigo-600/15 text-indigo-400 border border-indigo-500/30 transition">
-          <div class="flex items-center gap-3">
-            <span class="text-base">📈</span>
-            <span>Markt-Tracker</span>
-          </div>
-          <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded-md font-medium">Aktiv</span>
+        <button onclick="switchTab('market')" id="navBtn-market" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-semibold bg-indigo-600/15 text-indigo-400 border border-indigo-500/30 transition">
+          <span class="text-base">📈</span>
+          <span>Markt-Tracker</span>
         </button>
-
-        <button onclick="switchTab('portfolio-input')" id="navBtn-portfolio-input" class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition">
-          <div class="flex items-center gap-3">
-            <span class="text-base">💼</span>
-            <span>Mein Bestand</span>
-          </div>
+        <button onclick="switchTab('portfolio-input')" id="navBtn-portfolio-input" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition">
+          <span class="text-base">💼</span>
+          <span>Mein Bestand</span>
         </button>
-
-        <button onclick="switchTab('portfolio-perf')" id="navBtn-portfolio-perf" class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition">
-          <div class="flex items-center gap-3">
-            <span class="text-base">📊</span>
-            <span>Portfolio-Performance</span>
-          </div>
+        <button onclick="switchTab('portfolio-perf')" id="navBtn-portfolio-perf" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition">
+          <span class="text-base">📊</span>
+          <span>Portfolio-Performance</span>
         </button>
       </nav>
-
     </div>
 
-    <!-- Sidebar Footer -->
     <div class="pt-4 border-t border-slate-800 text-[11px] text-slate-500 text-center">
       GiG - Gescraped ist Geil v3.0
     </div>
@@ -70,13 +54,10 @@
     
     <!-- Top Bar & Auth State -->
     <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-5 md:p-6 rounded-2xl border border-slate-800 shadow-lg relative z-40">
-      
       <div class="flex items-center gap-3">
-        <!-- Sidebar Toggle Button -->
         <button onclick="toggleSidebar(true)" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl transition flex items-center justify-center shadow-sm">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
-
         <div>
           <h1 class="text-xl md:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
             📈 GiG - Gescraped ist Geil
@@ -86,7 +67,6 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-3">
-        <!-- Auth Button / Profile -->
         <div id="authContainer">
           <button onclick="openAuthModal()" id="loginBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs md:text-sm font-medium px-3.5 py-2.5 rounded-xl transition flex items-center gap-2">
             👤 Anmelden / Registrieren
@@ -230,32 +210,44 @@
             <p class="text-xs text-slate-400 mt-1">Trage deine gekauften Stückzahlen und durchschnittlichen Einkaufspreise (EK) ein.</p>
           </div>
           
-          <button onclick="savePortfolioToSupabase()" id="savePortfolioBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow-lg">
+          <button onclick="savePortfolioToSupabase()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow-lg">
             <span>💾</span> Portfolio speichern
           </button>
         </div>
 
-        <!-- Login Alert falls ausgeloggt -->
         <div id="portfolioLoggedOutWarning" class="p-4 rounded-xl bg-amber-950/50 border border-amber-800 text-amber-300 text-xs flex items-center justify-between gap-3 mb-6">
           <span>⚠️ Du bist nicht eingeloggt. Deine Bestände werden nur lokal gespeichert. Melde dich an, um sie sicher in der Cloud zu synchronisieren!</span>
           <button onclick="openAuthModal()" class="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-medium whitespace-nowrap">Anmelden</button>
         </div>
 
-        <!-- Portfolio Table -->
+        <!-- Sortierbare Tabelle mit Direkt-Links -->
         <div class="overflow-x-auto">
           <table class="w-full text-left text-sm text-slate-300">
-            <thead class="bg-slate-950/80 text-xs uppercase text-slate-400 border-b border-slate-800">
+            <thead class="bg-slate-950/80 text-xs uppercase text-slate-400 border-b border-slate-800 select-none">
               <tr>
-                <th class="p-3.5 rounded-l-xl">Artikel (Alphabetisch)</th>
-                <th class="p-3.5">Typ</th>
-                <th class="p-3.5 w-32">Stückzahl</th>
-                <th class="p-3.5 w-36">Mein Ø EK (€)</th>
-                <th class="p-3.5 text-right">Aktueller Marktpreis</th>
-                <th class="p-3.5 text-right rounded-r-xl">Gesamtwert</th>
+                <th onclick="toggleSort('name')" class="p-3.5 rounded-l-xl cursor-pointer hover:text-white transition">
+                  Artikel <span id="sortIcon-name" class="text-slate-500">↕</span>
+                </th>
+                <th onclick="toggleSort('type')" class="p-3.5 cursor-pointer hover:text-white transition">
+                  Typ <span id="sortIcon-type" class="text-slate-500">↕</span>
+                </th>
+                <th onclick="toggleSort('quantity')" class="p-3.5 w-32 cursor-pointer hover:text-white transition">
+                  Stückzahl <span id="sortIcon-quantity" class="text-slate-500">↕</span>
+                </th>
+                <th onclick="toggleSort('buy_price')" class="p-3.5 w-36 cursor-pointer hover:text-white transition">
+                  Mein Ø EK (€) <span id="sortIcon-buy_price" class="text-slate-500">↕</span>
+                </th>
+                <th onclick="toggleSort('current_price')" class="p-3.5 text-right cursor-pointer hover:text-white transition">
+                  Marktpreis <span id="sortIcon-current_price" class="text-slate-500">↕</span>
+                </th>
+                <th onclick="toggleSort('total_val')" class="p-3.5 text-right cursor-pointer hover:text-white transition">
+                  Gesamtwert <span id="sortIcon-total_val" class="text-slate-500">↕</span>
+                </th>
+                <th class="p-3.5 text-center w-24 rounded-r-xl">Aktionen</th>
               </tr>
             </thead>
             <tbody id="portfolioTableBody" class="divide-y divide-slate-800/60">
-              <!-- Dynamisch befüllt -->
+              <!-- Dynamisch gerendert -->
             </tbody>
           </table>
         </div>
@@ -270,15 +262,13 @@
 
     <!-- ================= TAB 3: PORTFOLIO-PERFORMANCE ================= -->
     <main id="tab-portfolio-perf" class="hidden space-y-6">
-      
-      <!-- Portfolio KPIs -->
       <div>
         <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Portfolio Übersicht & Rendite</h2>
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
             <span class="text-xs text-slate-400 font-medium">Portfolio-Gesamtwert</span>
             <div class="text-lg font-bold text-indigo-400 mt-1" id="portStatTotalValue">0.00 €</div>
-            <span class="text-[10px] text-slate-500">bezogen auf Ø Robust</span>
+            <span class="text-[10px] text-slate-500">exklusive Versandkosten</span>
           </div>
           <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
             <span class="text-xs text-slate-400 font-medium">Gesamtertrag (ROI)</span>
@@ -296,14 +286,13 @@
             <span class="text-[10px] text-slate-500">Bestand im Depot</span>
           </div>
           <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
-            <span class="text-xs text-slate-400 font-medium">Größte Position</span>
-            <div class="text-xs font-bold text-purple-300 truncate mt-1" id="portStatTopPosition">-</div>
-            <span class="text-[10px] text-slate-500" id="portStatTopPositionShare">-</span>
+            <span class="text-xs text-slate-400 font-medium">Teuerster Einzelwert</span>
+            <div class="text-xs font-bold text-purple-300 truncate mt-1" id="portStatMostExpensive">-</div>
+            <span class="text-[10px] text-slate-500" id="portStatMostExpensivePrice">-</span>
           </div>
         </div>
       </div>
 
-      <!-- Performance Zeiträume -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800">
           <span class="text-xs text-slate-400 font-medium">7-Tage Performance</span>
@@ -323,15 +312,13 @@
         </div>
       </div>
 
-      <!-- Portfolio-Chart -->
       <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-4 border-b border-slate-800/80">
           <div>
             <h2 class="text-lg font-bold text-white tracking-tight">📈 Gesamtwert-Entwicklung</h2>
-            <p class="text-xs text-slate-500 mt-0.5">Historischer Portfoliowert (Ø Robust ohne Versand)</p>
+            <p class="text-xs text-slate-500 mt-0.5">Historischer Portfoliowert (exklusive Versandkosten)</p>
           </div>
 
-          <!-- Zeitraum Filter für Portfolio -->
           <div class="inline-flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold" id="portTimeFilterButtons">
             <button onclick="setPortTimeRange('7d')" data-range="7d" class="port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">7T</button>
             <button onclick="setPortTimeRange('30d')" data-range="30d" class="port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">1M</button>
@@ -350,7 +337,7 @@
 
   </div>
 
-  <!-- Modal: Supabase Auth (Login / Registrieren) -->
+  <!-- Modal: Supabase Auth -->
   <div id="authModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
       <div class="flex justify-between items-center pb-2 border-b border-slate-800">
@@ -454,6 +441,10 @@
     let currentTimeRange = "all";
     let portCurrentTimeRange = "all";
 
+    // Tabellensortierung
+    let currentSortColumn = "name";
+    let currentSortDirection = "asc"; // 'asc', 'desc', 'none'
+
     let chartInstance = null;
     let portfolioChartInstance = null;
     let datasetVisibilityState = {};
@@ -470,7 +461,7 @@
       return shortYear ? `${day}.${month}.${year.substring(2)}` : `${day}.${month}.${year}`;
     }
 
-    // --- SIDEBAR DRAWER STEUERUNG ---
+    // --- SIDEBAR DRAWER ---
     function toggleSidebar(open = null) {
       const panel = document.getElementById('sidebarPanel');
       const backdrop = document.getElementById('sidebarBackdrop');
@@ -488,25 +479,19 @@
       }
     }
 
-    // --- TAB SWITCHING ---
+    // --- TAB NAVIGATION ---
     function switchTab(tabId) {
       document.querySelectorAll('main').forEach(m => m.classList.add('hidden'));
-      
-      // Sidebar Button Active State anpassen
+
+      // Sidebar Buttons reinigen
       document.querySelectorAll('#navMenuList button').forEach(btn => {
-        btn.className = 'w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition';
-        const badge = btn.querySelector('span:last-child');
-        if (badge && badge.textContent === 'Aktiv') badge.remove();
+        btn.className = 'w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition';
       });
 
       document.getElementById(`tab-${tabId}`).classList.remove('hidden');
       const activeBtn = document.getElementById(`navBtn-${tabId}`);
       if (activeBtn) {
-        activeBtn.className = 'w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-semibold bg-indigo-600/15 text-indigo-400 border border-indigo-500/30 transition';
-        const activeBadge = document.createElement('span');
-        activeBadge.className = 'text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded-md font-medium';
-        activeBadge.textContent = 'Aktiv';
-        activeBtn.appendChild(activeBadge);
+        activeBtn.className = 'w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-semibold bg-indigo-600/15 text-indigo-400 border border-indigo-500/30 transition';
       }
 
       toggleSidebar(false);
@@ -516,6 +501,41 @@
       } else if (tabId === 'portfolio-perf') {
         updatePortfolioDashboard();
       }
+    }
+
+    // --- TABELLENSORTIERUNG ---
+    function toggleSort(column) {
+      if (currentSortColumn === column) {
+        if (currentSortDirection === 'asc') currentSortDirection = 'desc';
+        else if (currentSortDirection === 'desc') {
+          currentSortColumn = 'name';
+          currentSortDirection = 'asc';
+        }
+      } else {
+        currentSortColumn = column;
+        currentSortDirection = 'asc';
+      }
+      renderPortfolioTable();
+    }
+
+    function updateSortIcons() {
+      ['name', 'type', 'quantity', 'buy_price', 'current_price', 'total_val'].forEach(col => {
+        const icon = document.getElementById(`sortIcon-${col}`);
+        if (!icon) return;
+        if (currentSortColumn === col) {
+          icon.textContent = currentSortDirection === 'asc' ? '↑' : '↓';
+          icon.className = 'text-indigo-400 font-bold';
+        } else {
+          icon.textContent = '↕';
+          icon.className = 'text-slate-500';
+        }
+      });
+    }
+
+    // --- DIREKT-WEITERLEITUNG ZU EINZEL-GRAPH ---
+    function goToProductChart(productName) {
+      switchTab('market');
+      selectProduct(productName);
     }
 
     // --- AUTH LOGIK ---
@@ -674,12 +694,12 @@
     }
 
     function renderPortfolioTable() {
+      updateSortIcons();
       const tbody = document.getElementById('portfolioTableBody');
       tbody.innerHTML = '';
 
-      const sortedProducts = [...configProducts].sort((a, b) => a.name.localeCompare(b.name));
-
-      sortedProducts.forEach(item => {
+      // Tabellendaten aufbereiten
+      const tableData = configProducts.map(item => {
         const pName = item.name;
         const pType = (item.type || 'single').toLowerCase();
         const userItem = userPortfolioMap[pName] || { quantity: 0, buy_price: 0 };
@@ -687,24 +707,57 @@
         const productRows = globalData.filter(d => d.product_name === pName);
         const latest = productRows[productRows.length - 1];
         const curMarketPrice = latest ? (latest.avg_robust || 0) : 0;
-        const totalVal = (userItem.quantity * curMarketPrice).toFixed(2);
+        const totalVal = userItem.quantity * curMarketPrice;
 
+        return {
+          name: pName,
+          url: item.url,
+          type: pType,
+          quantity: userItem.quantity,
+          buy_price: userItem.buy_price,
+          current_price: curMarketPrice,
+          total_val: totalVal
+        };
+      });
+
+      // Sortierung anwenden
+      tableData.sort((a, b) => {
+        let valA = a[currentSortColumn];
+        let valB = b[currentSortColumn];
+
+        if (typeof valA === 'string') {
+          return currentSortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        return currentSortDirection === 'asc' ? (valA - valB) : (valB - valA);
+      });
+
+      tableData.forEach(item => {
         const tr = document.createElement('tr');
-        tr.dataset.product = pName;
+        tr.dataset.product = item.name;
         tr.className = 'hover:bg-slate-800/40 transition';
         tr.innerHTML = `
-          <td class="p-3.5 font-medium text-white">${pName}</td>
+          <td class="p-3.5 font-medium text-white">${item.name}</td>
           <td class="p-3.5">
-            <span class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full ${pType === 'case' ? 'bg-purple-950 border border-purple-700 text-purple-300' : 'bg-indigo-950 border border-indigo-700 text-indigo-300'}">${pType}</span>
+            <span class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full ${item.type === 'case' ? 'bg-purple-950 border border-purple-700 text-purple-300' : 'bg-indigo-950 border border-indigo-700 text-indigo-300'}">${item.type}</span>
           </td>
           <td class="p-3.5">
-            <input type="number" min="0" step="1" value="${userItem.quantity}" class="port-qty-input w-24 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none">
+            <input type="number" min="0" step="1" value="${item.quantity}" class="port-qty-input w-24 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none">
           </td>
           <td class="p-3.5">
-            <input type="number" min="0" step="0.5" value="${userItem.buy_price || ''}" placeholder="0.00" class="port-price-input w-28 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none">
+            <input type="number" min="0" step="0.5" value="${item.buy_price || ''}" placeholder="0.00" class="port-price-input w-28 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none">
           </td>
-          <td class="p-3.5 text-right font-medium text-slate-300">${curMarketPrice ? curMarketPrice.toFixed(2) + ' €' : '-'}</td>
-          <td class="p-3.5 text-right font-bold text-indigo-400">${totalVal > 0 ? totalVal + ' €' : '-'}</td>
+          <td class="p-3.5 text-right font-medium text-slate-300">${item.current_price ? item.current_price.toFixed(2) + ' €' : '-'}</td>
+          <td class="p-3.5 text-right font-bold text-indigo-400">${item.total_val > 0 ? item.total_val.toFixed(2) + ' €' : '-'}</td>
+          <td class="p-3.5 text-center">
+            <div class="flex items-center justify-center gap-1.5">
+              <button onclick="goToProductChart('${item.name.replace(/'/g, "\\'")}')" title="Artikel im Graph öffnen" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-400 rounded-lg transition border border-slate-700">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+              </button>
+              <a href="${item.url}" target="_blank" rel="noopener noreferrer" title="Auf Cardmarket öffnen" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition border border-slate-700">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+              </a>
+            </div>
+          </td>
         `;
         tbody.appendChild(tr);
       });
@@ -717,8 +770,8 @@
       let totalItemsQty = 0;
       let totalPositionsCount = 0;
 
-      let topPosName = '-';
-      let topPosVal = 0;
+      let mostExpensiveItemName = '-';
+      let mostExpensiveItemPrice = 0;
 
       Object.keys(userPortfolioMap).forEach(pName => {
         const u = userPortfolioMap[pName];
@@ -729,13 +782,14 @@
 
           const productRows = globalData.filter(d => d.product_name === pName);
           const latest = productRows[productRows.length - 1];
-          const curPrice = latest ? (latest.avg_robust || 0) : 0;
-          const posVal = u.quantity * curPrice;
+          const curUnitPrice = latest ? (latest.avg_robust || 0) : 0;
+          const posVal = u.quantity * curUnitPrice;
           totalCurrentValue += posVal;
 
-          if (posVal > topPosVal) {
-            topPosVal = posVal;
-            topPosName = pName;
+          // Teuerster Einzelwert (Stückpreis)
+          if (curUnitPrice > mostExpensiveItemPrice) {
+            mostExpensiveItemPrice = curUnitPrice;
+            mostExpensiveItemName = pName;
           }
         }
       });
@@ -755,31 +809,36 @@
         document.getElementById('portStatROI').textContent = '-';
       }
 
-      if (topPosVal > 0 && totalCurrentValue > 0) {
-        const share = ((topPosVal / totalCurrentValue) * 100).toFixed(1);
-        document.getElementById('portStatTopPosition').textContent = topPosName;
-        document.getElementById('portStatTopPositionShare').textContent = `${topPosVal.toFixed(2)} € (${share}% vom Depot)`;
+      if (mostExpensiveItemPrice > 0) {
+        document.getElementById('portStatMostExpensive').textContent = mostExpensiveItemName;
+        document.getElementById('portStatMostExpensivePrice').textContent = `${mostExpensiveItemPrice.toFixed(2)} € (Stückpreis)`;
       } else {
-        document.getElementById('portStatTopPosition').textContent = '-';
-        document.getElementById('portStatTopPositionShare').textContent = '-';
+        document.getElementById('portStatMostExpensive').textContent = '-';
+        document.getElementById('portStatMostExpensivePrice').textContent = '-';
       }
 
+      // 2. Historische Portfolio-Entwicklung
+      // Bereinigung: Fehlen Vergangenheitsdaten zu einem Artikel, wird der EK herangezogen
       const timestamps = [...new Set(globalData.map(d => d.timestamp))].sort((a, b) => new Date(a.replace(' ', 'T')) - new Date(b.replace(' ', 'T')));
 
       const portfolioHistory = timestamps.map(ts => {
         let valueAtTs = 0;
         Object.keys(userPortfolioMap).forEach(pName => {
-          const qty = userPortfolioMap[pName].quantity;
-          if (qty > 0) {
+          const u = userPortfolioMap[pName];
+          if (u.quantity > 0) {
             const match = globalData.find(d => d.timestamp === ts && d.product_name === pName);
-            if (match && match.avg_robust) {
-              valueAtTs += (qty * match.avg_robust);
+            if (match && match.avg_robust != null && match.avg_robust > 0) {
+              valueAtTs += (u.quantity * match.avg_robust);
+            } else {
+              // Fallback auf den Einkaufspreis -> verhindert falschen Kursanstieg
+              valueAtTs += (u.quantity * (u.buy_price || 0));
             }
           }
         });
         return { timestamp: ts, total_value: roundNum(valueAtTs, 2) };
       });
 
+      // 3. Rendite-Kacheln für Portfolio
       if (portfolioHistory.length > 1) {
         const latestTime = new Date(portfolioHistory[portfolioHistory.length - 1].timestamp.replace(' ', 'T')).getTime();
         const msDay = 24 * 60 * 60 * 1000;
@@ -1226,7 +1285,7 @@
           },
           scales: {
             x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', maxTicksLimit: 10 } },
-            y: {
+            yPrices: {
               type: 'linear',
               position: 'left',
               grid: { color: '#1e293b' },
