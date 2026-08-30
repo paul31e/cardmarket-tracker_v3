@@ -10,36 +10,11 @@ from bs4 import BeautifulSoup
 
 CSV_PATH = "data/data.csv"
 CONFIG_PATH = "config.json"
-TELEGRAM_BOT_TOKEN = os.environ.get("BOTFATHER")
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAMCHATID")
 CM_USERNAME = os.environ.get("CM_USERNAME")
 CM_PASSWORD = os.environ.get("CM_PASSWORD")
 
 FLARESOLVERR_URL = "http://localhost:8191/v1"
 SESSION_ID = "cardmarket_session"
-
-def send_telegram_alert(product_name, price, target, url):
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        print("Telegram-Credentials fehlen.")
-        return
-    text = (
-        f"🚨 *PREIS-ALERT (inkl. Versand): {product_name}* 🚨\n\n"
-        f"💰 Günstigster Gesamtpreis: *{price:.2f} €*\n"
-        f"🎯 Zielpreis: *{target:.2f} €*\n\n"
-        f"🔗 [Direkt zum Angebot]({url})"
-    )
-    url_api = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": text,
-        "parse_mode": "Markdown",
-        "disable_web_page_preview": False
-    }
-    try:
-        res = requests.post(url_api, json=payload, timeout=10)
-        print(f"Telegram Alert Status: {res.status_code}")
-    except Exception as e:
-        print(f"Telegram-Fehler: {e}")
 
 def parse_price(price_str):
     if not price_str:
@@ -88,8 +63,6 @@ def login_via_flaresolverr():
         if match:
             cmtkn_val = match.group(1)
 
-    print(f"Extrahierter __cmtkn Token: {cmtkn_val[:12]}..." if cmtkn_val else "⚠️ Kein __cmtkn gefunden!")
-
     login_data = {
         "__cmtkn": cmtkn_val if cmtkn_val else "",
         "referalPage": "/de/Pokemon/Login",
@@ -136,21 +109,12 @@ def fetch_html_via_flaresolverr(target_url):
         "session": SESSION_ID,
         "maxTimeout": 60000
     }
-    headers = {"Content-Type": "application/json"}
-
     try:
-        print("Sende Request an FlareSolverr...")
-        resp = requests.post(FLARESOLVERR_URL, json=payload, headers=headers, timeout=70)
+        resp = requests.post(FLARESOLVERR_URL, json=payload, headers={"Content-Type": "application/json"}, timeout=70)
         data = resp.json()
-        
         if data.get("status") == "ok":
-            solution = data.get("solution", {})
-            status_code = solution.get("status")
-            print(f"FlareSolverr Response Status: {status_code}")
-            return solution.get("response")
-        else:
-            print(f"FlareSolverr Fehler: {data.get('message')}")
-            return None
+            return data.get("solution", {}).get("response")
+        return None
     except Exception as e:
         print(f"Verbindungsfehler zu FlareSolverr: {e}")
         return None
@@ -167,7 +131,6 @@ def run_scraper():
     init_flaresolverr_session()
     login_via_flaresolverr()
 
-    # Deutsche Zeitzone (Europe/Berlin)
     berlin_tz = zoneinfo.ZoneInfo("Europe/Berlin")
     timestamp = datetime.datetime.now(berlin_tz).strftime("%Y-%m-%d %H:%M:%S")
     results = []
@@ -176,11 +139,9 @@ def run_scraper():
         p_name = item["name"]
         p_type = item.get("type", "single").lower()
         p_url = item["url"]
-        target = item.get("target_price", 0)
 
         print(f"\n==========================================")
         print(f"Scrape: {p_name} (Typ: {p_type})")
-        print(f"URL: {p_url}")
 
         html = fetch_html_via_flaresolverr(p_url)
         if not html:
@@ -188,13 +149,6 @@ def run_scraper():
             continue
 
         soup = BeautifulSoup(html, "html.parser")
-        title = soup.find("title")
-        print(f"Seitentitel: {title.get_text(strip=True) if title else 'Kein Titel'}")
-
-        if "EINKAUFSWAGEN" in html or (CM_USERNAME and CM_USERNAME.lower() in html.lower()):
-            print("✅ LOGIN-STATUS: EINGELOGGT (Versandkosten aktiv)")
-        else:
-            print("❌ LOGIN-STATUS: NICHT EINGELOGGT")
 
         # 1. Gesamtmenge erfassen
         avail_items = 0
@@ -208,11 +162,8 @@ def run_scraper():
                         avail_items = int(digits)
                     break
 
-        print(f"Verfügbare Menge: {avail_items}")
-
         # 2. Angebote auslesen
         offer_rows = soup.select("div[id^='articleRow'], .article-row")
-        
         parsed_item_prices = []
         parsed_total_prices = []
 
@@ -232,24 +183,17 @@ def run_scraper():
                             shipping_cost = parsed_ship
                     
                     total_price = round(item_price + shipping_cost, 2)
-                    
                     parsed_item_prices.append(item_price)
                     parsed_total_prices.append(total_price)
 
-        # Beide Listen unabhängig voneinander sortieren
         sorted_item_prices = sorted(parsed_item_prices)
         sorted_total_prices = sorted(parsed_total_prices)
 
-        print(f"Extrahierte Gesamtpreise inkl. Versand ({len(sorted_total_prices)}): {sorted_total_prices[:3]}...")
-        print(f"Extrahierte Artikelpreise ohne Versand ({len(sorted_item_prices)}): {sorted_item_prices[:3]}...")
-
         if sorted_total_prices:
-            # Günstigste 3 Gesamtpreise (inkl. Versand)
             c1_total = sorted_total_prices[0] if len(sorted_total_prices) > 0 else None
             c2_total = sorted_total_prices[1] if len(sorted_total_prices) > 1 else None
             c3_total = sorted_total_prices[2] if len(sorted_total_prices) > 2 else None
 
-            # Durchschnitte berechnen
             if p_type == "case":
                 avg_robust = calc_mean(sorted_item_prices[1:5])
                 avg_market = calc_mean(sorted_item_prices[:10])
@@ -261,13 +205,7 @@ def run_scraper():
                 avg_robust_shipping = calc_mean(sorted_total_prices[2:10])
                 avg_market_shipping = calc_mean(sorted_total_prices[:15])
 
-            print(f"Inkl. Versand: Top 3 = [{c1_total}€, {c2_total}€, {c3_total}€] | Robust={avg_robust_shipping}€ | Markt={avg_market_shipping}€")
-            print(f"Ohne  Versand: Robust={avg_robust}€ | Markt={avg_market}€")
-
-            # Alert prüfen
-            if c1_total and target and c1_total <= target:
-                print(f"-> Alert getriggert: {c1_total}€ <= {target}€")
-                send_telegram_alert(p_name, c1_total, target, p_url)
+            print(f"Top 3 Gesamt: [{c1_total}€, {c2_total}€, {c3_total}€] | Robust={avg_robust_shipping}€ | Markt={avg_market_shipping}€")
 
             results.append({
                 "timestamp": timestamp,
@@ -283,7 +221,6 @@ def run_scraper():
                 "avg_market_shipping": avg_market_shipping
             })
 
-    # In CSV schreiben
     os.makedirs("data", exist_ok=True)
     if results:
         df_new = pd.DataFrame(results)
@@ -294,8 +231,6 @@ def run_scraper():
         else:
             df_new.to_csv(CSV_PATH, index=False)
         print("\n=> data/data.csv wurde erfolgreich aktualisiert!")
-    else:
-        print("\n=> Keine Daten erfasst.")
 
 if __name__ == "__main__":
     run_scraper()
