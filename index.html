@@ -381,10 +381,10 @@
     // ================= SUPABASE KONFIGURATION =================
     const SUPABASE_URL = "https://nxtpixbuesueouszfocg.supabase.co";
     // Trage hier deinen vollständigen Anon-Key aus Screenshot 3 ein:
-    const SUPABASE_ANON_KEY = "DEIN_SUPABASE_ANON_KEY_HIER_EINFÜGEN";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54dHBpeGJ1ZXN1ZW91c3pmb2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDY1NjUsImV4cCI6MjEwMzY4MjU2NX0.MgQqiuqGCACeeR7K7bRw9p6sbjc1lHip60zXXT_bpGc";
     
     let supabaseClient = null;
-    if (SUPABASE_ANON_KEY !== "DEIN_SUPABASE_ANON_KEY_HIER_EINFÜGEN") {
+    if (SUPABASE_ANON_KEY !== "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54dHBpeGJ1ZXN1ZW91c3pmb2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDY1NjUsImV4cCI6MjEwMzY4MjU2NX0.MgQqiuqGCACeeR7K7bRw9p6sbjc1lHip60zXXT_bpGc") {
       supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
 
