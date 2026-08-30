@@ -33,7 +33,7 @@
       </div>
     </header>
 
-    <!-- KPI Metric Cards: Preis & Renditen -->
+    <!-- KPI Metric Cards: Preis & Renditen (5er Grid) -->
     <div>
       <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Preisentwicklung (Ø Robust inkl. Versand)</h2>
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
@@ -55,15 +55,15 @@
         </div>
         <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
           <div class="space-y-1">
-            <div class="text-[14px] font-bold text-rose-400 leading-tight" id="statPriceATL">-</div>
-            <div class="text-[14px] font-bold text-emerald-400 leading-tight" id="statPriceATH">-</div>
+            <div class="text-[15px] font-bold text-rose-400 leading-tight" id="statPriceATL">-</div>
+            <div class="text-[15px] font-bold text-emerald-400 leading-tight" id="statPriceATH">-</div>
           </div>
-          <span class="text-[9px] text-slate-500/80 tracking-wide uppercase mt-1.5">seit Trackingbeginn</span>
+          <span class="text-[9.5px] text-slate-500 mt-auto pt-1">Seit Trackingbeginn</span>
         </div>
       </div>
     </div>
 
-    <!-- KPI Metric Cards: Bestands-Dynamik -->
+    <!-- KPI Metric Cards: Bestands-Dynamik (5er Grid) -->
     <div>
       <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Verfügbarkeits-Dynamik (Bestandsänderung)</h2>
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
@@ -85,10 +85,10 @@
         </div>
         <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
           <div class="space-y-1">
-            <div class="text-[14px] font-bold text-rose-400 leading-tight" id="statAvailMin">-</div>
-            <div class="text-[14px] font-bold text-emerald-400 leading-tight" id="statAvailMax">-</div>
+            <div class="text-[15px] font-bold text-rose-400 leading-tight" id="statAvailMin">-</div>
+            <div class="text-[15px] font-bold text-emerald-400 leading-tight" id="statAvailMax">-</div>
           </div>
-          <span class="text-[9px] text-slate-500/80 tracking-wide uppercase mt-1.5">seit Trackingbeginn</span>
+          <span class="text-[9.5px] text-slate-500 mt-auto pt-1">Seit Trackingbeginn</span>
         </div>
       </div>
     </div>
@@ -193,6 +193,15 @@
     const REPO_OWNER = "paul31e";
     const REPO_NAME = "cardmarket-tracker_v3";
     const CONFIG_FILE = "config.json";
+
+    // Hilfsfunktion: Wandelt YYYY-MM-DD in DD.MM.YYYY oder DD.MM.YY um
+    function formatDateGerman(isoDateStr, shortYear = false) {
+      if (!isoDateStr) return '-';
+      const parts = isoDateStr.substring(0, 10).split('-');
+      if (parts.length !== 3) return isoDateStr;
+      const [year, month, day] = parts;
+      return shortYear ? `${day}.${month}.${year.substring(2)}` : `${day}.${month}.${year}`;
+    }
 
     function utf8_to_b64(str) {
       return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => {
@@ -341,25 +350,25 @@
       });
 
       if (rowPriceATL) {
-        document.getElementById('statPriceATL').innerHTML = `📉 ATL: ${priceATL.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${rowPriceATL.timestamp.substring(2, 10)})</span>`;
+        document.getElementById('statPriceATL').innerHTML = `📉 ATL: ${priceATL.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowPriceATL.timestamp, true)})</span>`;
       } else {
         document.getElementById('statPriceATL').textContent = '-';
       }
 
       if (rowPriceATH) {
-        document.getElementById('statPriceATH').innerHTML = `📈 ATH: ${priceATH.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${rowPriceATH.timestamp.substring(2, 10)})</span>`;
+        document.getElementById('statPriceATH').innerHTML = `📈 ATH: ${priceATH.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowPriceATH.timestamp, true)})</span>`;
       } else {
         document.getElementById('statPriceATH').textContent = '-';
       }
 
       if (rowAvailMin) {
-        document.getElementById('statAvailMin').innerHTML = `📉 ATL: ${availMin} Stk. <span class="text-[11px] text-slate-300 font-medium">(${rowAvailMin.timestamp.substring(2, 10)})</span>`;
+        document.getElementById('statAvailMin').innerHTML = `📉 ATL: ${availMin} Stk. <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowAvailMin.timestamp, true)})</span>`;
       } else {
         document.getElementById('statAvailMin').textContent = '-';
       }
 
       if (rowAvailMax) {
-        document.getElementById('statAvailMax').innerHTML = `📈 ATH: ${availMax} Stk. <span class="text-[11px] text-slate-300 font-medium">(${rowAvailMax.timestamp.substring(2, 10)})</span>`;
+        document.getElementById('statAvailMax').innerHTML = `📈 ATH: ${availMax} Stk. <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowAvailMax.timestamp, true)})</span>`;
       } else {
         document.getElementById('statAvailMax').textContent = '-';
       }
@@ -414,7 +423,9 @@
 
     function renderChart(data, pType) {
       const ctx = document.getElementById('priceChart').getContext('2d');
-      const labels = data.map(d => d.timestamp.substring(5, 10));
+      
+      // Deutsches Datumsformat für die X-Achse (DD.MM.YYYY)
+      const labels = data.map(d => formatDateGerman(d.timestamp, false));
 
       if (chartInstance) {
         chartInstance.data.datasets.forEach((ds, i) => {
@@ -583,7 +594,9 @@
               callbacks: {
                 title: function(tooltipItems) {
                   const idx = tooltipItems[0].dataIndex;
-                  return `📅 ${data[idx].timestamp}`;
+                  const row = data[idx];
+                  const [datePart, timePart] = row.timestamp.split(' ');
+                  return `📅 ${formatDateGerman(datePart, false)} (${timePart.substring(0, 5)} Uhr)`;
                 },
                 label: function(context) {
                   const label = context.dataset.label || '';
@@ -612,7 +625,7 @@
               grid: { color: '#1e293b' },
               ticks: { 
                 color: '#94a3b8',
-                maxTicksLimit: 12,
+                maxTicksLimit: 10,
                 maxRotation: 0
               }
             },
