@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TCG Cardmarket Price Tracker</title>
+  <title>GiG - Gescraped ist Geil</title>
   
   <!-- Tailwind CSS & Chart.js -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -18,9 +18,9 @@
     <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg">
       <div>
         <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-          📈 Cardmarket Tracker
+          📈 GiG - Gescraped ist Geil
         </h1>
-        <p class="text-sm text-slate-400 mt-1">Preishistorie, Renditen & Marktanalysen</p>
+        <p class="text-sm text-indigo-400 font-medium mt-1 italic" id="randomQuote">Lädt Spruch...</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-3">
@@ -38,7 +38,7 @@
       <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Preisentwicklung (Ø Robust inkl. Versand) & ATL</h2>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-          <span class="text-xs text-slate-400 font-medium">All-Time Low (ATL)</span>
+          <span class="text-xs text-slate-400 font-medium">All-Time Low (ATL seit Trackingbeginn)</span>
           <div class="text-lg font-bold text-emerald-400 mt-1" id="statATL">-</div>
           <span class="text-[11px] text-slate-500" id="statATLDate">-</span>
         </div>
@@ -137,6 +137,17 @@
   </div>
 
   <script>
+    const quotes = [
+      "Wie geil ist Dustin?!",
+      "Eyyy det is n Softklos, nicht einfach zuknallen wie beim Trabi",
+      "Hii Nick Gersau, lieebe Grüße..."
+    ];
+
+    function setRandomQuote() {
+      const q = quotes[Math.floor(Math.random() * quotes.length)];
+      document.getElementById('randomQuote').textContent = `„${q}“`;
+    }
+
     let globalData = [];
     let chartInstance = null;
     const REPO_OWNER = "paul31e";
@@ -144,6 +155,7 @@
     const CONFIG_FILE = "config.json";
 
     async function loadData() {
+      setRandomQuote();
       const csvPath = 'data/data.csv?v=' + new Date().getTime();
       Papa.parse(csvPath, {
         download: true,
@@ -184,7 +196,6 @@
       for (const row of data) {
         const rowTime = new Date(row.timestamp.replace(' ', 'T')).getTime();
         const diff = Math.abs(rowTime - targetTime);
-        // Maximal 25% Abweichung vom Suchzeitraum erlauben
         if (diff < minDiff) {
           minDiff = diff;
           closest = row;
@@ -221,7 +232,7 @@
       const latest = filtered[filtered.length - 1];
       const latestTime = new Date(latest.timestamp.replace(' ', 'T')).getTime();
 
-      // 1. All-Time Low (ATL)
+      // 1. All-Time Low (ATL seit Trackingbeginn)
       let atl = Infinity;
       let atlRow = null;
       filtered.forEach(r => {
@@ -243,7 +254,7 @@
       // Aktueller Bestand
       document.getElementById('statCurrentAvail').textContent = latest.available_items != null ? `${latest.available_items} Stk.` : '-';
 
-      // 2. Zeiträume: 7 Tage, 30 Tage, 365 Tage
+      // 2. Zeiträume
       const ms7d = 7 * 24 * 60 * 60 * 1000;
       const ms30d = 30 * 24 * 60 * 60 * 1000;
       const ms12m = 365 * 24 * 60 * 60 * 1000;
@@ -255,7 +266,7 @@
       const row12m = (latestTime - new Date(filtered[0].timestamp.replace(' ', 'T')).getTime() >= ms12m * 0.7) 
         ? findClosestRecord(filtered, latestTime - ms12m) : null;
 
-      // Preis-Renditen (Basis: avg_robust_shipping)
+      // Preis-Renditen
       const currentPrice = latest.avg_robust_shipping;
       document.getElementById('statPrice7d').innerHTML = row7d ? formatDelta(currentPrice, row7d.avg_robust_shipping, true) : '-';
       document.getElementById('statPrice30d').innerHTML = row30d ? formatDelta(currentPrice, row30d.avg_robust_shipping, true) : '-';
