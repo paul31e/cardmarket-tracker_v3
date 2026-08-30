@@ -2,6 +2,7 @@ import os
 import re
 import json
 import datetime
+import zoneinfo
 import urllib.parse
 import requests
 import pandas as pd
@@ -121,7 +122,7 @@ def login_via_flaresolverr():
     verify_res = requests.post(FLARESOLVERR_URL, json=verify_payload, timeout=70).json()
     verify_html = verify_res.get("solution", {}).get("response", "")
 
-    if "EINKAUFSWAGEN" in verify_html or (CM_USERNAME and CM_USERNAME.lower() in verify_html.lower()) or "paul-eisen" in verify_html.lower():
+    if "EINKAUFSWAGEN" in verify_html or (CM_USERNAME and CM_USERNAME.lower() in verify_html.lower()):
         print("✅ LOGIN-STATUS: ERFOLGREICH EINGELOGGT!")
         return True
     else:
@@ -166,7 +167,9 @@ def run_scraper():
     init_flaresolverr_session()
     login_via_flaresolverr()
 
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Deutsche Zeitzone (Europe/Berlin)
+    berlin_tz = zoneinfo.ZoneInfo("Europe/Berlin")
+    timestamp = datetime.datetime.now(berlin_tz).strftime("%Y-%m-%d %H:%M:%S")
     results = []
 
     for item in config["products"]:
@@ -188,7 +191,7 @@ def run_scraper():
         title = soup.find("title")
         print(f"Seitentitel: {title.get_text(strip=True) if title else 'Kein Titel'}")
 
-        if "EINKAUFSWAGEN" in html or (CM_USERNAME and CM_USERNAME.lower() in html.lower()) or "paul-eisen" in html.lower():
+        if "EINKAUFSWAGEN" in html or (CM_USERNAME and CM_USERNAME.lower() in html.lower()):
             print("✅ LOGIN-STATUS: EINGELOGGT (Versandkosten aktiv)")
         else:
             print("❌ LOGIN-STATUS: NICHT EINGELOGGT")
@@ -261,7 +264,7 @@ def run_scraper():
             print(f"Inkl. Versand: Top 3 = [{c1_total}€, {c2_total}€, {c3_total}€] | Robust={avg_robust_shipping}€ | Markt={avg_market_shipping}€")
             print(f"Ohne  Versand: Robust={avg_robust}€ | Markt={avg_market}€")
 
-            # Alert auf Basis des günstigsten Gesamtpreises prüfen
+            # Alert prüfen
             if c1_total and target and c1_total <= target:
                 print(f"-> Alert getriggert: {c1_total}€ <= {target}€")
                 send_telegram_alert(p_name, c1_total, target, p_url)
