@@ -81,13 +81,37 @@
       </div>
     </div>
 
-    <!-- Chart Container -->
-    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg">
+    <!-- Chart Container mit Header & Direktlink -->
+    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg relative">
+      
+      <!-- Titel & Cardmarket-Link über dem Graph -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-800/80">
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 class="text-lg font-bold text-white tracking-tight" id="chartProductTitle">-</h2>
+            <span id="chartProductType" class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300"></span>
+          </div>
+          <p class="text-xs text-slate-500 mt-0.5">Zeitlicher Verlauf von Preisen und Marktvolumen</p>
+        </div>
+        
+        <a id="chartCmLink" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700/80 hover:border-indigo-500/50 transition shadow-sm w-fit">
+          <span>Auf Cardmarket öffnen</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+          </svg>
+        </a>
+      </div>
+
+      <!-- Canvas -->
       <div class="h-[500px] w-full relative">
         <canvas id="priceChart"></canvas>
       </div>
+
+      <!-- Schwebender Legenden-Tooltip für Berechnungsformeln -->
+      <div id="legendTooltip" class="absolute pointer-events-none hidden z-30 bg-slate-950/95 border border-slate-700/80 text-xs text-slate-200 px-3 py-2 rounded-xl shadow-xl backdrop-blur-sm max-w-xs transition-opacity duration-150"></div>
+
       <div class="mt-4 text-xs text-slate-500 text-center">
-        💡 Klicke auf Einträge in der Legende zum Aus-/Einblenden von Linien. Hover über Datenpunkte für die Top 3 Angebote.
+        💡 Klicke auf Einträge in der Legende zum Aus-/Einblenden. Hover über die Legende für Berechnungsformeln oder über Punkte für Top-3-Angebote.
       </div>
     </div>
 
@@ -150,6 +174,7 @@
     }
 
     let globalData = [];
+    let configProducts = [];
     let chartInstance = null;
     let datasetVisibilityState = {};
 
@@ -171,6 +196,18 @@
 
     async function loadData() {
       setRandomQuote();
+
+      // Config laden für Direktlinks
+      try {
+        const confRes = await fetch('config.json?v=' + new Date().getTime());
+        if (confRes.ok) {
+          const conf = await confRes.json();
+          configProducts = conf.products || [];
+        }
+      } catch (e) {
+        console.warn('Konnte config.json nicht direkt laden', e);
+      }
+
       const csvPath = 'data/data.csv?v=' + new Date().getTime();
       Papa.parse(csvPath, {
         download: true,
@@ -245,7 +282,25 @@
       if (filtered.length === 0) return;
 
       const latest = filtered[filtered.length - 1];
-      const latestTime = new Date(latest.timestamp.replace(' ', 'T')).getTime();
+      const pType = (latest.product_type || 'single').toLowerCase();
+
+      // Header über Graph aktualisieren
+      document.getElementById('chartProductTitle').textContent = productName;
+      const badge = document.getElementById('chartProductType');
+      badge.textContent = pType === 'case' ? '📦 Case' : 'Single';
+      badge.className = pType === 'case'
+        ? 'text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-purple-950/80 border border-purple-700 text-purple-300'
+        : 'text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-indigo-950/80 border border-indigo-700 text-indigo-300';
+
+      // Direktlink zu Cardmarket
+      const confItem = configProducts.find(p => p.name === productName);
+      const linkBtn = document.getElementById('chartCmLink');
+      if (confItem && confItem.url) {
+        linkBtn.href = confItem.url;
+        linkBtn.classList.remove('hidden');
+      } else {
+        linkBtn.classList.add('hidden');
+      }
 
       // 1. ATL
       let atl = Infinity;
@@ -269,7 +324,8 @@
       // Aktueller Bestand
       document.getElementById('statCurrentAvail').textContent = latest.available_items != null ? `${latest.available_items} Stk.` : '-';
 
-      // 2. Zeiträume
+      // 2. Rendite-Zeiträume
+      const latestTime = new Date(latest.timestamp.replace(' ', 'T')).getTime();
       const ms7d = 7 * 24 * 60 * 60 * 1000;
       const ms30d = 30 * 24 * 60 * 60 * 1000;
       const ms12m = 365 * 24 * 60 * 60 * 1000;
@@ -291,13 +347,11 @@
       document.getElementById('statAvail30d').innerHTML = row30d ? formatDelta(currentAvail, row30d.available_items, false) : '-';
       document.getElementById('statAvail12m').innerHTML = row12m ? formatDelta(currentAvail, row12m.available_items, false) : '-';
 
-      renderChart(filtered);
+      renderChart(filtered, pType);
     }
 
-    function renderChart(data) {
+    function renderChart(data, pType) {
       const ctx = document.getElementById('priceChart').getContext('2d');
-      
-      // X-Achsen Label: Reines Datum (MM-DD)
       const labels = data.map(d => d.timestamp.substring(5, 10));
 
       if (chartInstance) {
@@ -306,6 +360,23 @@
         });
         chartInstance.destroy();
       }
+
+      // Berechnungserklärungen passend zum Produkttyp (Single vs. Case)
+      const formulaExplanations = {
+        'Robust (inkl. Versand)': pType === 'case'
+          ? '<b>Ø Robust (inkl. Versand):</b> Mittelwert der Top 2 bis 5 günstigsten Gesamtpreise (filtert extremen Ausreißer #1 heraus).'
+          : '<b>Ø Robust (inkl. Versand):</b> Mittelwert der Top 3 bis 10 günstigsten Gesamtpreise (filtert Fake-/Lockangebote auf Rang 1 & 2 heraus).',
+        'Markt (inkl. Versand)': pType === 'case'
+          ? '<b>Ø Markt (inkl. Versand):</b> Ungewichteter Mittelwert der Top 10 günstigsten Gesamtpreise.'
+          : '<b>Ø Markt (inkl. Versand):</b> Ungewichteter Mittelwert der Top 15 günstigsten Gesamtpreise am Markt.',
+        'Robust (ohne Versand)': pType === 'case'
+          ? '<b>Ø Robust (ohne Versand):</b> Mittelwert der reinen Artikelpreise auf Rang 2 bis 5.'
+          : '<b>Ø Robust (ohne Versand):</b> Mittelwert der reinen Artikelpreise auf Rang 3 bis 10.',
+        'Markt (ohne Versand)': pType === 'case'
+          ? '<b>Ø Markt (ohne Versand):</b> Mittelwert der Top 10 reinen Artikelpreise.'
+          : '<b>Ø Markt (ohne Versand):</b> Mittelwert der Top 15 reinen Artikelpreise.',
+        'Verfügbare Menge': '<b>Verfügbare Artikel:</b> Gesamtzahl aller aktuell auf Cardmarket gelisteten Exemplare (inkl. Vorbestellungen).'
+      };
 
       const datasets = [
         {
@@ -372,6 +443,8 @@
         }
       ];
 
+      const tooltipBox = document.getElementById('legendTooltip');
+
       chartInstance = new Chart(ctx, {
         type: 'line',
         data: { labels, datasets },
@@ -390,6 +463,18 @@
                 boxWidth: 12,
                 padding: 16,
                 font: { size: 12, weight: '500' }
+              },
+              onHover: function(e, legendItem, legend) {
+                const text = formulaExplanations[legendItem.text];
+                if (text && tooltipBox) {
+                  tooltipBox.innerHTML = text;
+                  tooltipBox.classList.remove('hidden');
+                  tooltipBox.style.left = `${Math.min(e.native.layerX + 15, ctx.canvas.width - 260)}px`;
+                  tooltipBox.style.top = `${Math.max(10, e.native.layerY + 60)}px`;
+                }
+              },
+              onLeave: function() {
+                if (tooltipBox) tooltipBox.classList.add('hidden');
               },
               onClick: function(e, legendItem, legend) {
                 const index = legendItem.datasetIndex;
@@ -415,7 +500,7 @@
               callbacks: {
                 title: function(tooltipItems) {
                   const idx = tooltipItems[0].dataIndex;
-                  return `📅 ${data[idx].timestamp}`; // Im Tooltip bleibt die exakte Uhrzeit erhalten
+                  return `📅 ${data[idx].timestamp}`;
                 },
                 label: function(context) {
                   const label = context.dataset.label || '';
@@ -444,7 +529,7 @@
               grid: { color: '#1e293b' },
               ticks: { 
                 color: '#94a3b8',
-                maxTicksLimit: 12, // Begrenzt die Tick-Anzahl für optimale Lesbarkeit
+                maxTicksLimit: 12,
                 maxRotation: 0
               }
             },
