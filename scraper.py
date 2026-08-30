@@ -2,7 +2,6 @@ import os
 import re
 import json
 import datetime
-import zoneinfo
 import urllib.parse
 import requests
 import pandas as pd
@@ -131,8 +130,8 @@ def run_scraper():
     init_flaresolverr_session()
     login_via_flaresolverr()
 
-    berlin_tz = zoneinfo.ZoneInfo("Europe/Berlin")
-    timestamp = datetime.datetime.now(berlin_tz).strftime("%Y-%m-%d %H:%M:%S")
+    # UTC-Timestamp
+    timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     results = []
 
     for item in config["products"]:
@@ -150,7 +149,7 @@ def run_scraper():
 
         soup = BeautifulSoup(html, "html.parser")
 
-        # 1. Gesamtmenge erfassen
+        # 1. Gesamtmenge
         avail_items = 0
         for dt in soup.find_all("dt"):
             txt = dt.get_text(strip=True)
