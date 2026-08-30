@@ -177,7 +177,7 @@
               <button onclick="setTimeRange('all')" data-range="all" class="time-btn px-2.5 py-1 rounded-lg transition bg-indigo-600 text-white shadow-sm">Alles</button>
             </div>
             
-            <a id="chartCmLink" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700/80 hover:border-indigo-500/50 transition shadow-sm w-fit">
+            <a id="chartCmLink" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700/80 hover:border-indigo-500/50 transition shadow-sm w-fit">
               <span>Auf Cardmarket öffnen</span>
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
             </a>
@@ -270,7 +270,6 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
           <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col justify-center">
             <span class="text-[11px] text-slate-400 font-medium">Portfolio-Gesamtwert</span>
-            <!-- Jetzt in leuchtendem Smaragdgrün -->
             <div class="text-base md:text-lg font-bold text-emerald-400 mt-0.5" id="portStatTotalValue">0.00 €</div>
             <span class="text-[9.5px] text-slate-500">exklusive Versandkosten</span>
           </div>
@@ -286,13 +285,18 @@
           </div>
           <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col justify-center">
             <span class="text-[11px] text-slate-400 font-medium">Positionen & Einheiten</span>
-            <div class="text-base md:text-lg font-bold text-amber-400 mt-0.5" id="portStatItemsCount">0 Pos. / 0 Stk.</div>
+            <!-- Jetzt komplett in Weiß -->
+            <div class="text-base md:text-lg font-bold text-white mt-0.5" id="portStatItemsCount">0 Pos. / 0 Stk.</div>
             <span class="text-[9.5px] text-slate-500">Bestand im Depot</span>
           </div>
-          <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col justify-center">
-            <span class="text-[11px] text-slate-400 font-medium">Teuerster Einzelwert</span>
-            <div class="text-xs font-bold text-purple-300 truncate mt-0.5" id="portStatMostExpensive">-</div>
-            <span class="text-[9.5px] text-slate-500" id="portStatMostExpensivePrice">-</span>
+          
+          <!-- Kachel: Teuerster Einzelwert (Stückpreis groß oben, Name darunter lesbar) -->
+          <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col justify-between">
+            <div>
+              <span class="text-[11px] text-slate-400 font-medium">Teuerster Einzelwert</span>
+              <div class="text-base md:text-lg font-bold text-indigo-400 mt-0.5 leading-tight" id="portStatMostExpensivePrice">-</div>
+            </div>
+            <div class="text-[11px] text-purple-300 font-medium line-clamp-2 mt-1 leading-snug" id="portStatMostExpensive">-</div>
           </div>
         </div>
       </div>
@@ -440,7 +444,7 @@
     let currentSelectedProduct = "";
     let currentTimeRange = "all";
     let portCurrentTimeRange = "all";
-    let portLatestTotalValue = 0; // Merkt sich den aktuellen Gesamtwert
+    let portLatestTotalValue = 0;
 
     let currentSortColumn = "name";
     let currentSortDirection = "asc";
@@ -849,7 +853,7 @@
 
       if (mostExpensiveItemPrice > 0) {
         document.getElementById('portStatMostExpensive').textContent = mostExpensiveItemName;
-        document.getElementById('portStatMostExpensivePrice').textContent = `${mostExpensiveItemPrice.toFixed(2)} € (Stückpreis)`;
+        document.getElementById('portStatMostExpensivePrice').textContent = `${mostExpensiveItemPrice.toFixed(2)} €`;
       } else {
         document.getElementById('portStatMostExpensive').textContent = '-';
         document.getElementById('portStatMostExpensivePrice').textContent = '-';
@@ -1041,10 +1045,10 @@
               borderWidth: 1.5,
               padding: 14,
               cornerRadius: 12,
-              titleFont: { size: 14, weight: 'bold' },
-              titleColor: '#f8fafc',
-              bodyFont: { size: 13 },
-              bodySpacing: 6,
+              titleFont: { size: 15, weight: 'bold' },
+              titleColor: '#ffffff',
+              bodyFont: { size: 14, weight: '500' },
+              bodySpacing: 8,
               callbacks: {
                 title: function(items) {
                   const idx = items[0].dataIndex;
@@ -1065,7 +1069,10 @@
                 },
                 labelTextColor: function(context) {
                   const item = data[context.dataIndex];
-                  return item.roi_pct >= 0 ? '#34d399' : '#f87171'; // Grün vs Rot
+                  // Zeile 0 (Rendite): Grün/Rot dynamisch
+                  // Zeile 1 (Portfoliowert): Reinweiß (#ffffff)
+                  // Zeile 2 (Investiert): Reinweiß (#ffffff)
+                  return item.roi_pct >= 0 ? '#34d399' : '#f87171';
                 }
               }
             }
