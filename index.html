@@ -43,15 +43,15 @@
         </div>
         <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
           <span class="text-xs text-slate-400 font-medium">7-Tage Rendite</span>
-          <div class="text-base font-bold text-slate-200 mt-1" id="statPrice7d">-</div>
+          <div class="text-lg font-bold text-slate-200 mt-1" id="statPrice7d">-</div>
         </div>
         <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
           <span class="text-xs text-slate-400 font-medium">30-Tage Rendite</span>
-          <div class="text-base font-bold text-slate-200 mt-1" id="statPrice30d">-</div>
+          <div class="text-lg font-bold text-slate-200 mt-1" id="statPrice30d">-</div>
         </div>
         <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
           <span class="text-xs text-slate-400 font-medium">12-Monate Rendite</span>
-          <div class="text-base font-bold text-slate-200 mt-1" id="statPrice12m">-</div>
+          <div class="text-lg font-bold text-slate-200 mt-1" id="statPrice12m">-</div>
         </div>
         <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
           <div class="space-y-1">
@@ -73,15 +73,15 @@
         </div>
         <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
           <span class="text-xs text-slate-400 font-medium">Bestand Δ (7 Tage)</span>
-          <div class="text-base font-bold text-slate-200 mt-1" id="statAvail7d">-</div>
+          <div class="text-lg font-bold text-slate-200 mt-1" id="statAvail7d">-</div>
         </div>
         <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
           <span class="text-xs text-slate-400 font-medium">Bestand Δ (30 Tage)</span>
-          <div class="text-base font-bold text-slate-200 mt-1" id="statAvail30d">-</div>
+          <div class="text-lg font-bold text-slate-200 mt-1" id="statAvail30d">-</div>
         </div>
         <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
           <span class="text-xs text-slate-400 font-medium">Bestand Δ (12 Monate)</span>
-          <div class="text-base font-bold text-slate-200 mt-1" id="statAvail12m">-</div>
+          <div class="text-lg font-bold text-slate-200 mt-1" id="statAvail12m">-</div>
         </div>
         <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
           <div class="space-y-1">
@@ -194,7 +194,6 @@
     const REPO_NAME = "cardmarket-tracker_v3";
     const CONFIG_FILE = "config.json";
 
-    // Hilfsfunktion: Wandelt YYYY-MM-DD in DD.MM.YYYY oder DD.MM.YY um
     function formatDateGerman(isoDateStr, shortYear = false) {
       if (!isoDateStr) return '-';
       const parts = isoDateStr.substring(0, 10).split('-');
@@ -291,7 +290,7 @@
         ? 'text-emerald-400' 
         : (diff < 0 ? 'text-rose-400' : 'text-slate-300');
 
-      return `<span class="${colorClass}">${pctFormatted}</span> <span class="text-[11px] text-slate-400 font-normal block sm:inline">(${valFormatted})</span>`;
+      return `<span class="${colorClass}">${pctFormatted}</span> <span class="text-xs text-slate-300 font-normal ml-0.5">(${valFormatted})</span>`;
     }
 
     function updateDashboard(productName) {
@@ -356,7 +355,7 @@
       }
 
       if (rowPriceATH) {
-        document.getElementById('statPriceATH').innerHTML = `📈 ATH: ${priceATH.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowPriceATH.timestamp, true)})</span>`;
+        document.getElementById('statPriceATH').innerHTML = `📈 ATH: ${priceATH.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${rowPriceATH.timestamp.substring(2, 10)})</span>`;
       } else {
         document.getElementById('statPriceATH').textContent = '-';
       }
@@ -423,8 +422,6 @@
 
     function renderChart(data, pType) {
       const ctx = document.getElementById('priceChart').getContext('2d');
-      
-      // Deutsches Datumsformat für die X-Achse (DD.MM.YYYY)
       const labels = data.map(d => formatDateGerman(d.timestamp, false));
 
       if (chartInstance) {
