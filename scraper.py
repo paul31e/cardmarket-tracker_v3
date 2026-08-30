@@ -1,235 +1,217 @@
+import json
 import os
 import re
-import json
-import datetime
-import urllib.parse
-import requests
+import time
+from datetime import datetime
 import pandas as pd
+import requests
 from bs4 import BeautifulSoup
 
-CSV_PATH = "data/data.csv"
-CONFIG_PATH = "config.json"
-CM_USERNAME = os.environ.get("CM_USERNAME")
-CM_PASSWORD = os.environ.get("CM_PASSWORD")
+CONFIG_PATH = 'config.json'
+DATA_CSV_PATH = 'data/data.csv'
+FLARESOLVERR_URL = os.environ.get('FLARESOLVERR_URL', 'http://localhost:8191/v1')
 
-FLARESOLVERR_URL = "http://localhost:8191/v1"
-SESSION_ID = "cardmarket_session"
 
-def parse_price(price_str):
-    if not price_str:
+def clean_price(text):
+    if not text:
         return None
-    clean = price_str.replace("€", "").replace("+", "").replace("\xa0", "").strip()
-    clean = clean.replace(".", "")
-    clean = clean.replace(",", ".")
-    try:
-        val = float(clean)
-        return val if val >= 0 else None
-    except ValueError:
-        return None
+    # Filtert Zahlen im deutschen Format (z.B. "1.234,50 €" -> 1234.50)
+    match = re.search(r'([\d\.]+,\d{2})', text)
+    if match:
+        raw = match.group(1).replace('.', '').replace(',', '.')
+        try:
+            return float(raw)
+        except ValueError:
+            return None
+    return None
 
-def init_flaresolverr_session():
-    try:
-        requests.post(FLARESOLVERR_URL, json={"cmd": "sessions.destroy", "session": SESSION_ID}, timeout=10)
-    except Exception:
-        pass
 
-    print(f"Erstelle FlareSolverr-Session '{SESSION_ID}'...")
-    res = requests.post(FLARESOLVERR_URL, json={"cmd": "sessions.create", "session": SESSION_ID}, timeout=20)
-    print("Session-Status:", res.json().get("message", "OK"))
+def parse_cardmarket_html(html_content):
+    soup = BeautifulSoup(html_content, 'html.parser')
 
-def login_via_flaresolverr():
-    if not CM_USERNAME or not CM_PASSWORD:
-        print("⚠️ Keine Login-Credentials hinterlegt.")
-        return False
+    # 1. Verfügbare Gesamtartikel ermitteln
+    available_items = None
+    avail_elem = soup.find(string=re.compile(r'Verfügbare Artikel|Available items', re.I))
+    if avail_elem:
+        parent = avail_elem.find_parent()
+        if parent:
+            text = parent.get_text()
+            match = re.search(r'(\d+[\d\.]*)', text.replace(avail_elem, ''))
+            if match:
+                try:
+                    available_items = int(match.group(1).replace('.', ''))
+                except ValueError:
+                    pass
 
-    print(f"Rufe Login-Seite ab für Account '{CM_USERNAME}'...")
-    
-    get_payload = {
-        "cmd": "request.get",
-        "url": "https://www.cardmarket.com/de/Pokemon/Login",
-        "session": SESSION_ID,
-        "maxTimeout": 60000
-    }
-    res = requests.post(FLARESOLVERR_URL, json=get_payload, timeout=70).json()
-    html = res.get("solution", {}).get("response", "")
-    soup = BeautifulSoup(html, "html.parser")
+    # Fallback für verfügbare Artikel über Info-Block
+    if available_items is None:
+        info_boxes = soup.select('.info-list-container dd, .labeled')
+        for box in info_boxes:
+            txt = box.get_text()
+            if re.search(r'^\d+[\d\.]*$', txt.strip()):
+                try:
+                    available_items = int(txt.strip().replace('.', ''))
+                    break
+                except ValueError:
+                    continue
 
-    token_input = soup.select_one("input[name='__cmtkn']")
-    cmtkn_val = token_input.get("value") if token_input else None
+    # 2. Tabellenzeilen / Artikelangebote parsen
+    rows = soup.select('.table-body .row, .article-row')
+    offers = []
 
-    if not cmtkn_val:
-        match = re.search(r'name=["\']__cmtkn["\']\s+value=["\']([^"\']+)["\']', html)
-        if match:
-            cmtkn_val = match.group(1)
+    for row in rows:
+        # Preis des Artikels
+        price_elem = row.select_one('.color-primary, .price-container, .col-price')
+        item_price = clean_price(price_elem.get_text()) if price_elem else None
 
-    login_data = {
-        "__cmtkn": cmtkn_val if cmtkn_val else "",
-        "referalPage": "/de/Pokemon/Login",
-        "username": CM_USERNAME,
-        "userPassword": CM_PASSWORD
-    }
-
-    post_payload = {
-        "cmd": "request.post",
-        "url": "https://www.cardmarket.com/de/Pokemon/PostGetAction/User_Login",
-        "session": SESSION_ID,
-        "postData": urllib.parse.urlencode(login_data),
-        "headers": {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Referer": "https://www.cardmarket.com/de/Pokemon/Login",
-            "Origin": "https://www.cardmarket.com"
-        },
-        "maxTimeout": 60000
-    }
-    
-    print("Sende Login-POST an Cardmarket...")
-    requests.post(FLARESOLVERR_URL, json=post_payload, timeout=70)
-    
-    verify_payload = {
-        "cmd": "request.get",
-        "url": "https://www.cardmarket.com/de/Pokemon",
-        "session": SESSION_ID,
-        "maxTimeout": 60000
-    }
-    verify_res = requests.post(FLARESOLVERR_URL, json=verify_payload, timeout=70).json()
-    verify_html = verify_res.get("solution", {}).get("response", "")
-
-    if "EINKAUFSWAGEN" in verify_html or (CM_USERNAME and CM_USERNAME.lower() in verify_html.lower()):
-        print("✅ LOGIN-STATUS: ERFOLGREICH EINGELOGGT!")
-        return True
-    else:
-        print("⚠️ Login verarbeitet, prüfe Status auf Produktseite.")
-        return False
-
-def fetch_html_via_flaresolverr(target_url):
-    payload = {
-        "cmd": "request.get",
-        "url": target_url,
-        "session": SESSION_ID,
-        "maxTimeout": 60000
-    }
-    try:
-        resp = requests.post(FLARESOLVERR_URL, json=payload, headers={"Content-Type": "application/json"}, timeout=70)
-        data = resp.json()
-        if data.get("status") == "ok":
-            return data.get("solution", {}).get("response")
-        return None
-    except Exception as e:
-        print(f"Verbindungsfehler zu FlareSolverr: {e}")
-        return None
-
-def calc_mean(prices):
-    if not prices:
-        return None
-    return round(sum(prices) / len(prices), 2)
-
-def run_scraper():
-    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-        config = json.load(f)
-
-    init_flaresolverr_session()
-    login_via_flaresolverr()
-
-    # UTC-Timestamp
-    timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    results = []
-
-    for item in config["products"]:
-        p_name = item["name"]
-        p_type = item.get("type", "single").lower()
-        p_url = item["url"]
-
-        print(f"\n==========================================")
-        print(f"Scrape: {p_name} (Typ: {p_type})")
-
-        html = fetch_html_via_flaresolverr(p_url)
-        if not html:
-            print(f"Konnte {p_name} nicht abrufen.")
+        if item_price is None:
             continue
 
-        soup = BeautifulSoup(html, "html.parser")
+        # Versandkosten ermitteln (Standard: 0.0 wenn nicht ersichtlich / Abholung)
+        shipping_elem = row.select_one('.col-shipping, .shipping-price, .d-none.d-md-inline')
+        shipping_price = 0.0
+        if shipping_elem:
+            parsed_ship = clean_price(shipping_elem.get_text())
+            if parsed_ship is not None:
+                shipping_price = parsed_ship
 
-        # 1. Gesamtmenge
-        avail_items = 0
-        for dt in soup.find_all("dt"):
-            txt = dt.get_text(strip=True)
-            if "Verfügbare Artikel" in txt or "Available items" in txt:
-                dd = dt.find_next_sibling("dd")
-                if dd:
-                    digits = re.sub(r"[^\d]", "", dd.get_text())
-                    if digits:
-                        avail_items = int(digits)
-                    break
+        total_price = round(item_price + shipping_price, 2)
+        offers.append({
+            'item_price': item_price,
+            'shipping_price': shipping_price,
+            'total_price': total_price
+        })
 
-        # 2. Angebote auslesen
-        offer_rows = soup.select("div[id^='articleRow'], .article-row")
-        parsed_item_prices = []
-        parsed_total_prices = []
+    return available_items, offers
 
-        for row in offer_rows:
-            price_cell = row.select_one(".col-price, .price-container, .font-weight-bold")
-            text_to_search = price_cell.get_text(" ", strip=True) if price_cell else row.get_text(" ", strip=True)
-            
-            euro_matches = re.findall(r"(\d+(?:\.\d{3})*,\d{2})\s*€", text_to_search)
-            
-            if euro_matches:
-                item_price = parse_price(euro_matches[0])
-                if item_price and item_price > 1.0:
-                    shipping_cost = 0.0
-                    if len(euro_matches) > 1:
-                        parsed_ship = parse_price(euro_matches[1])
-                        if parsed_ship is not None:
-                            shipping_cost = parsed_ship
-                    
-                    total_price = round(item_price + shipping_cost, 2)
-                    parsed_item_prices.append(item_price)
-                    parsed_total_prices.append(total_price)
 
-        sorted_item_prices = sorted(parsed_item_prices)
-        sorted_total_prices = sorted(parsed_total_prices)
-
-        if sorted_total_prices:
-            c1_total = sorted_total_prices[0] if len(sorted_total_prices) > 0 else None
-            c2_total = sorted_total_prices[1] if len(sorted_total_prices) > 1 else None
-            c3_total = sorted_total_prices[2] if len(sorted_total_prices) > 2 else None
-
-            if p_type == "case":
-                avg_robust = calc_mean(sorted_item_prices[1:5])
-                avg_market = calc_mean(sorted_item_prices[:10])
-                avg_robust_shipping = calc_mean(sorted_total_prices[1:5])
-                avg_market_shipping = calc_mean(sorted_total_prices[:10])
-            else:
-                avg_robust = calc_mean(sorted_item_prices[2:10])
-                avg_market = calc_mean(sorted_item_prices[:15])
-                avg_robust_shipping = calc_mean(sorted_total_prices[2:10])
-                avg_market_shipping = calc_mean(sorted_total_prices[:15])
-
-            print(f"Top 3 Gesamt: [{c1_total}€, {c2_total}€, {c3_total}€] | Robust={avg_robust_shipping}€ | Markt={avg_market_shipping}€")
-
-            results.append({
-                "timestamp": timestamp,
-                "product_name": p_name,
-                "product_type": p_type,
-                "available_items": avail_items,
-                "cheapest_1": c1_total,
-                "cheapest_2": c2_total,
-                "cheapest_3": c3_total,
-                "avg_robust": avg_robust,
-                "avg_market": avg_market,
-                "avg_robust_shipping": avg_robust_shipping,
-                "avg_market_shipping": avg_market_shipping
-            })
-
-    os.makedirs("data", exist_ok=True)
-    if results:
-        df_new = pd.DataFrame(results)
-        if os.path.exists(CSV_PATH) and os.path.getsize(CSV_PATH) > 0:
-            df_existing = pd.read_csv(CSV_PATH)
-            df_combined = pd.concat([df_existing, df_new], ignore_index=True)
-            df_combined.to_csv(CSV_PATH, index=False)
+def fetch_with_flaresolverr(url):
+    payload = {
+        'cmd': 'request.get',
+        'url': url,
+        'maxTimeout': 60000
+    }
+    headers = {'Content-Type': 'application/json'}
+    
+    try:
+        response = requests.post(FLARESOLVERR_URL, json=payload, headers=headers, timeout=70)
+        res_json = response.json()
+        if res_json.get('status') == 'ok':
+            return res_json.get('solution', {}).get('response')
         else:
-            df_new.to_csv(CSV_PATH, index=False)
-        print("\n=> data/data.csv wurde erfolgreich aktualisiert!")
+            print(f"⚠️ FlareSolverr Fehler: {res_json.get('message')}")
+            return None
+    except Exception as e:
+        print(f"❌ FlareSolverr Request fehlgeschlagen für {url}: {e}")
+        return None
 
-if __name__ == "__main__":
-    run_scraper()
+
+def calculate_metrics(offers, p_type='single'):
+    if not offers:
+        return {}
+
+    # Sortiert nach Gesamtpreis inkl. Versand
+    by_shipping = sorted(offers, key=lambda x: x['total_price'])
+    # Sortiert nach reinem Artikelpreis ohne Versand
+    by_item = sorted(offers, key=lambda x: x['item_price'])
+
+    ship_totals = [o['total_price'] for o in by_shipping]
+    item_totals = [o['item_price'] for o in by_item]
+
+    # Dynamische Durchschnitte je nach Produkttyp (Single vs Case)
+    if p_type.lower() == 'case':
+        # Cases haben weniger Angebote: Top 2-5 bzw. Top 10
+        robust_ship = ship_totals[1:5] if len(ship_totals) >= 5 else ship_totals[1:] if len(ship_totals) > 1 else ship_totals
+        market_ship = ship_totals[:10]
+        robust_item = item_totals[1:5] if len(item_totals) >= 5 else item_totals[1:] if len(item_totals) > 1 else item_totals
+        market_item = item_totals[:10]
+    else:
+        # Singles: Top 3-10 bzw. Top 15
+        robust_ship = ship_totals[2:10] if len(ship_totals) >= 10 else ship_totals[2:] if len(ship_totals) > 2 else ship_totals
+        market_ship = ship_totals[:15]
+        robust_item = item_totals[2:10] if len(item_totals) >= 10 else item_totals[2:] if len(item_totals) > 2 else item_totals
+        market_item = item_totals[:15]
+
+    metrics = {
+        'avg_robust_shipping': round(sum(robust_ship) / len(robust_ship), 2) if robust_ship else None,
+        'avg_market_shipping': round(sum(market_ship) / len(market_ship), 2) if market_ship else None,
+        'avg_robust': round(sum(robust_item) / len(robust_item), 2) if robust_item else None,
+        'avg_market': round(sum(market_item) / len(market_item), 2) if market_item else None,
+        # Alte Legacy-Keys zur Sicherheit weiterführen
+        'cheapest_1': ship_totals[0] if len(ship_totals) > 0 else None,
+        'cheapest_2': ship_totals[1] if len(ship_totals) > 1 else None,
+        'cheapest_3': ship_totals[2] if len(ship_totals) > 2 else None,
+    }
+
+    # Top 20 Einzelpreise inkl. Versand
+    for i in range(1, 21):
+        metrics[f'cheapest_ship_{i}'] = ship_totals[i - 1] if len(ship_totals) >= i else None
+
+    # Top 20 Einzelpreise exkl. Versand
+    for i in range(1, 21):
+        metrics[f'cheapest_item_{i}'] = item_totals[i - 1] if len(item_totals) >= i else None
+
+    return metrics
+
+
+def main():
+    if not os.path.exists(CONFIG_PATH):
+        print(f"❌ Konfigurationsdatei nicht gefunden: {CONFIG_PATH}")
+        return
+
+    with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+
+    products = config.get('products', [])
+    if not products:
+        print("ℹ️ Keine Produkte in config.json definiert.")
+        return
+
+    now_str = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    new_rows = []
+
+    for p in products:
+        name = p.get('name')
+        url = p.get('url')
+        p_type = p.get('type', 'single')
+
+        print(f"🔍 Scrape {name} ({p_type})...")
+        html = fetch_with_flaresolverr(url)
+        
+        if not html:
+            print(f"⚠️ Überspringe {name}, da kein HTML geladen werden konnte.")
+            continue
+
+        available_items, offers = parse_cardmarket_html(html)
+        metrics = calculate_metrics(offers, p_type)
+
+        row = {
+            'timestamp': now_str,
+            'product_name': name,
+            'product_type': p_type,
+            'available_items': available_items,
+            **metrics
+        }
+        new_rows.append(row)
+        time.sleep(2)  # Kurze Pause zwischen Anfragen
+
+    if not new_rows:
+        print("⚠️ Keine neuen Daten gesammelt.")
+        return
+
+    # In CSV anhängen
+    os.makedirs(os.path.dirname(DATA_CSV_PATH), exist_ok=True)
+    df_new = pd.DataFrame(new_rows)
+
+    if os.path.exists(DATA_CSV_PATH):
+        df_existing = pd.read_csv(DATA_CSV_PATH)
+        df_combined = pd.concat([df_existing, df_new], ignore_axis=0)
+    else:
+        df_combined = df_new
+
+    df_combined.to_csv(DATA_CSV_PATH, index=False, encoding='utf-8')
+    print(f"✅ Erfolgreich {len(new_rows)} Produkte mit Top-20-Preisen in {DATA_CSV_PATH} gespeichert.")
+
+
+if __name__ == '__main__':
+    main()
