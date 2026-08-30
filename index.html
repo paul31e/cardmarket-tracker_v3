@@ -52,11 +52,12 @@
   <!-- ================= HAUPTINHALT ================= -->
   <div class="max-w-6xl mx-auto space-y-4">
     
-    <!-- Top Bar: Kompakt & flach -->
+    <!-- Top Bar: Auffälligerer Navigation Button -->
     <header class="flex items-center justify-between gap-3 bg-slate-900 px-4 py-2.5 md:px-5 md:py-3 rounded-xl border border-slate-800 shadow-md relative z-40">
-      <div class="flex items-center gap-2.5">
-        <button onclick="toggleSidebar(true)" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition flex items-center justify-center shadow-sm">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+      <div class="flex items-center gap-3">
+        <!-- Größerer, auffälliger Menü-Button -->
+        <button onclick="toggleSidebar(true)" class="p-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-xl transition flex items-center justify-center shadow-md active:scale-95" title="Menü öffnen">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
         <h1 class="text-base md:text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
           📈 GiG - Gescraped ist Geil
@@ -65,10 +66,10 @@
 
       <!-- Auth Bereich rechtsbündig -->
       <div id="authContainer">
-        <button onclick="openAuthModal()" id="loginBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+        <button onclick="openAuthModal()" id="loginBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition flex items-center gap-1.5">
           👤 Anmelden
         </button>
-        <div id="userProfile" class="hidden flex items-center gap-2 bg-slate-800/80 border border-slate-700 px-2.5 py-1 rounded-lg text-xs">
+        <div id="userProfile" class="hidden flex items-center gap-2 bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg text-xs">
           <span class="text-indigo-300 font-medium truncate max-w-[160px]" id="userEmailLabel">User</span>
           <button onclick="handleLogout()" class="text-rose-400 hover:text-rose-300 ml-1 font-semibold">Abmelden</button>
         </div>
@@ -177,7 +178,7 @@
               <button onclick="setTimeRange('all')" data-range="all" class="time-btn px-2.5 py-1 rounded-lg transition bg-indigo-600 text-white shadow-sm">Alles</button>
             </div>
             
-            <a id="chartCmLink" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700/80 hover:border-indigo-500/50 transition shadow-sm w-fit">
+            <a id="chartCmLink" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700/80 hover:border-indigo-500/50 transition shadow-sm w-fit">
               <span>Auf Cardmarket öffnen</span>
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
             </a>
@@ -289,14 +290,11 @@
             <div class="text-base md:text-lg font-bold text-white mt-0.5" id="portStatItemsCount">0 Pos. / 0 Stk.</div>
             <span class="text-[9.5px] text-slate-500">Bestand im Depot</span>
           </div>
-          
-          <!-- Kachel: Teuerster Einzelwert (Stückpreis groß oben, Name darunter lesbar) -->
           <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col justify-between">
-            <div>
-              <span class="text-[11px] text-slate-400 font-medium">Teuerster Einzelwert</span>
-              <div class="text-base md:text-lg font-bold text-indigo-400 mt-0.5 leading-tight" id="portStatMostExpensivePrice">-</div>
-            </div>
-            <div class="text-[11px] text-purple-300 font-medium line-clamp-2 mt-1 leading-snug" id="portStatMostExpensive">-</div>
+            <span class="text-[11px] text-slate-400 font-medium">Teuerster Einzelwert</span>
+            <!-- Weiß, mehrzeilig ohne Abschneiden & gut lesbarer Preis -->
+            <div class="text-xs font-semibold text-white line-clamp-2 mt-0.5" id="portStatMostExpensive">-</div>
+            <div class="text-sm font-bold text-white mt-auto pt-0.5" id="portStatMostExpensivePrice">-</div>
           </div>
         </div>
       </div>
@@ -328,7 +326,6 @@
           </div>
 
           <div class="flex flex-wrap items-center gap-2.5">
-            <!-- Größerer Gesamtwert-Badge (Live bei Hover) -->
             <div class="bg-slate-950 px-3.5 py-1.5 rounded-xl border border-slate-800 flex items-center gap-2 shadow-inner">
               <span class="text-xs text-slate-400 font-medium" id="portChartBadgeLabel">Gesamtwert:</span>
               <span class="text-base md:text-lg font-extrabold text-emerald-400" id="portChartCurValBadge">0.00 €</span>
@@ -853,7 +850,7 @@
 
       if (mostExpensiveItemPrice > 0) {
         document.getElementById('portStatMostExpensive').textContent = mostExpensiveItemName;
-        document.getElementById('portStatMostExpensivePrice').textContent = `${mostExpensiveItemPrice.toFixed(2)} €`;
+        document.getElementById('portStatMostExpensivePrice').textContent = `${mostExpensiveItemPrice.toFixed(2)} € (Stückpreis)`;
       } else {
         document.getElementById('portStatMostExpensive').textContent = '-';
         document.getElementById('portStatMostExpensivePrice').textContent = '-';
@@ -1043,11 +1040,11 @@
               backgroundColor: '#020617',
               borderColor: '#334155',
               borderWidth: 1.5,
-              padding: 14,
+              padding: 16,
               cornerRadius: 12,
-              titleFont: { size: 15, weight: 'bold' },
+              titleFont: { size: 16, weight: 'bold' },
               titleColor: '#ffffff',
-              bodyFont: { size: 14, weight: '500' },
+              bodyFont: { size: 14.5, weight: '500' },
               bodySpacing: 8,
               callbacks: {
                 title: function(items) {
@@ -1068,11 +1065,8 @@
                   ];
                 },
                 labelTextColor: function(context) {
-                  const item = data[context.dataIndex];
-                  // Zeile 0 (Rendite): Grün/Rot dynamisch
-                  // Zeile 1 (Portfoliowert): Reinweiß (#ffffff)
-                  // Zeile 2 (Investiert): Reinweiß (#ffffff)
-                  return item.roi_pct >= 0 ? '#34d399' : '#f87171';
+                  // Tooltip Standard-Text in Weiß
+                  return '#ffffff';
                 }
               }
             }
