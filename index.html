@@ -364,18 +364,18 @@
       // Berechnungserklärungen passend zum Produkttyp (Single vs. Case)
       const formulaExplanations = {
         'Robust (inkl. Versand)': pType === 'case'
-          ? '<b>Ø Robust (inkl. Versand):</b> Mittelwert der Top 2 bis 5 günstigsten Gesamtpreise (filtert extremen Ausreißer #1 heraus).'
-          : '<b>Ø Robust (inkl. Versand):</b> Mittelwert der Top 3 bis 10 günstigsten Gesamtpreise (filtert Fake-/Lockangebote auf Rang 1 & 2 heraus).',
+          ? '<b>Ø Robust (inkl. Versand):</b> Mittelwert der Top 2 bis 5 günstigsten Gesamtpreise.'
+          : '<b>Ø Robust (inkl. Versand):</b> Mittelwert der Top 3 bis 10 günstigsten Gesamtpreise.',
         'Markt (inkl. Versand)': pType === 'case'
           ? '<b>Ø Markt (inkl. Versand):</b> Ungewichteter Mittelwert der Top 10 günstigsten Gesamtpreise.'
-          : '<b>Ø Markt (inkl. Versand):</b> Ungewichteter Mittelwert der Top 15 günstigsten Gesamtpreise am Markt.',
+          : '<b>Ø Markt (inkl. Versand):</b> Ungewichteter Mittelwert der Top 15 günstigsten Gesamtpreise.',
         'Robust (ohne Versand)': pType === 'case'
           ? '<b>Ø Robust (ohne Versand):</b> Mittelwert der reinen Artikelpreise auf Rang 2 bis 5.'
           : '<b>Ø Robust (ohne Versand):</b> Mittelwert der reinen Artikelpreise auf Rang 3 bis 10.',
         'Markt (ohne Versand)': pType === 'case'
           ? '<b>Ø Markt (ohne Versand):</b> Mittelwert der Top 10 reinen Artikelpreise.'
           : '<b>Ø Markt (ohne Versand):</b> Mittelwert der Top 15 reinen Artikelpreise.',
-        'Verfügbare Menge': '<b>Verfügbare Artikel:</b> Gesamtzahl aller aktuell auf Cardmarket gelisteten Exemplare (inkl. Vorbestellungen).'
+        'Verfügbare Menge': '<b>Verfügbare Artikel:</b> Gesamtzahl aller auf Cardmarket gelisteten Exemplare.'
       };
 
       const datasets = [
