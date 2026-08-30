@@ -23,11 +23,14 @@
         <p class="text-sm text-slate-400 mt-1">Preishistorie & Marktanalysen</p>
       </div>
 
-      <div class="flex items-center gap-3">
-        <label for="productSelect" class="text-sm font-medium text-slate-300 whitespace-nowrap">Produkt:</label>
-        <select id="productSelect" class="bg-slate-800 border border-slate-700 text-white text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 outline-none min-w-[280px]">
+      <div class="flex flex-wrap items-center gap-3">
+        <select id="productSelect" class="bg-slate-800 border border-slate-700 text-white text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-2.5 outline-none min-w-[240px]">
           <!-- Optionen dynamisch via JS -->
         </select>
+        
+        <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-md">
+          <span>+</span> Artikel hinzufügen
+        </button>
       </div>
     </header>
 
@@ -63,12 +66,57 @@
 
   </div>
 
+  <!-- Modal: Artikel hinzufügen -->
+  <div id="addModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-white">Neuen Artikel tracken</h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
+      </div>
+
+      <form id="addProductForm" onsubmit="handleAddProduct(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Produktname (Anzeigename)</label>
+          <input type="text" id="modalName" required placeholder="z.B. Pokemon Surging Sparks Booster Display" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Cardmarket URL</label>
+          <input type="url" id="modalUrl" required placeholder="https://www.cardmarket.com/de/Pokemon/Products/..." class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Typ</label>
+          <select id="modalType" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+            <option value="single">Single (z.B. Display, ETB, Einzelbox)</option>
+            <option value="case">Case (z.B. 6er Display-Karton)</option>
+          </select>
+        </div>
+
+        <div class="pt-2 border-t border-slate-800">
+          <label class="block text-xs font-medium text-slate-400 mb-1">GitHub Personal Access Token (PAT)</label>
+          <input type="password" id="modalToken" placeholder="ghp_xxxxxxxxxxxx" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+          <p class="text-[11px] text-slate-500 mt-1">Wird nur in deinem Browser gespeichert, um die config.json im Repo zu aktualisieren.</p>
+        </div>
+
+        <div id="modalStatus" class="text-xs hidden p-2.5 rounded-lg"></div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm text-slate-400 hover:text-white">Abbrechen</button>
+          <button type="submit" id="submitBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-5 py-2 rounded-xl transition">Hinzufügen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     let globalData = [];
     let chartInstance = null;
+    const REPO_OWNER = "paul31e";
+    const REPO_NAME = "cardmarket-tracker_v3";
+    const CONFIG_FILE = "config.json";
 
     async function loadData() {
-      // Cache-Busting via Timestamp, damit immer die neueste CSV geladen wird
       const csvPath = 'data/data.csv?v=' + new Date().getTime();
       Papa.parse(csvPath, {
         download: true,
@@ -119,7 +167,7 @@
 
     function renderChart(data) {
       const ctx = document.getElementById('priceChart').getContext('2d');
-      const labels = data.map(d => d.timestamp.substring(5, 16)); // Format: MM-DD HH:MM
+      const labels = data.map(d => d.timestamp.substring(5, 16));
 
       const datasets = [
         {
@@ -130,8 +178,7 @@
           yAxisID: 'yPrices',
           tension: 0.2,
           borderWidth: 2.5,
-          pointRadius: 4,
-          pointHoverRadius: 6
+          pointRadius: 4
         },
         {
           label: 'Markt (inkl. Versand)',
@@ -141,8 +188,7 @@
           yAxisID: 'yPrices',
           tension: 0.2,
           borderWidth: 2.5,
-          pointRadius: 4,
-          pointHoverRadius: 6
+          pointRadius: 4
         },
         {
           label: 'Robust (ohne Versand)',
@@ -209,7 +255,6 @@
               borderColor: '#334155',
               borderWidth: 1,
               padding: 12,
-              displayColors: true,
               callbacks: {
                 label: function(context) {
                   const label = context.dataset.label || '';
@@ -249,8 +294,7 @@
               title: {
                 display: true,
                 text: 'Preise (€)',
-                color: '#818cf8',
-                font: { weight: '600' }
+                color: '#818cf8'
               }
             },
             yQuantity: {
@@ -264,13 +308,115 @@
               title: {
                 display: true,
                 text: 'Bestand (Stück)',
-                color: '#f59e0b',
-                font: { weight: '600' }
+                color: '#f59e0b'
               }
             }
           }
         }
       });
+    }
+
+    // Modal Funktionen
+    function openModal() {
+      document.getElementById('addModal').classList.remove('hidden');
+      const savedToken = localStorage.getItem('gh_pat') || '';
+      document.getElementById('modalToken').value = savedToken;
+      document.getElementById('modalStatus').className = 'text-xs hidden p-2.5 rounded-lg';
+    }
+
+    function closeModal() {
+      document.getElementById('addModal').classList.add('hidden');
+    }
+
+    // GitHub API Integration
+    async function handleAddProduct(event) {
+      event.preventDefault();
+      const statusBox = document.getElementById('modalStatus');
+      const btn = document.getElementById('submitBtn');
+
+      const name = document.getElementById('modalName').value.trim();
+      const url = document.getElementById('modalUrl').value.trim();
+      const type = document.getElementById('modalType').value;
+      const token = document.getElementById('modalToken').value.trim();
+
+      if (!token) {
+        showStatus('Bitte trage deinen GitHub Personal Access Token ein.', 'error');
+        return;
+      }
+
+      localStorage.setItem('gh_pat', token);
+      btn.disabled = true;
+      btn.textContent = 'Speichere...';
+
+      try {
+        // 1. Aktuelle config.json via GitHub API abrufen
+        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${CONFIG_FILE}`;
+        const getRes = await fetch(apiUrl, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+
+        if (!getRes.ok) throw new Error('Konnte config.json nicht laden. Prüfe den GitHub Token.');
+
+        const fileData = await getRes.json();
+        const currentContent = JSON.parse(decodeURIComponent(escape(atob(fileData.content))));
+
+        // 2. Neues Produkt anfügen
+        const newProduct = {
+          name: name,
+          type: type,
+          url: url,
+          target_price: 0
+        };
+
+        // Prüfen, ob URL oder Name schon existiert
+        if (currentContent.products.some(p => p.url === url)) {
+          throw new Error('Dieser Cardmarket-Link wird bereits getrackt!');
+        }
+
+        currentContent.products.push(newProduct);
+
+        // 3. Neue config.json committen
+        const updatedJsonStr = JSON.stringify(currentContent, null, 2);
+        const updatedBase64 = btoa(unescape(encodeURIComponent(updatedJsonStr)));
+
+        const putRes = await fetch(apiUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/vnd.github.v3+json'
+          },
+          body: JSON.stringify({
+            message: `Add ${name} via Web Dashboard`,
+            content: updatedBase64,
+            sha: fileData.sha
+          })
+        });
+
+        if (!putRes.ok) throw new Error('Fehler beim Speichern in GitHub.');
+
+        showStatus('✅ Erfolgreich hinzugefügt! Das Produkt wird beim nächsten Scrape erfasst.', 'success');
+        document.getElementById('modalName').value = '';
+        document.getElementById('modalUrl').value = '';
+        setTimeout(() => closeModal(), 2000);
+
+      } catch (err) {
+        showStatus(`⚠️ ${err.message}`, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Hinzufügen';
+      }
+    }
+
+    function showStatus(text, type) {
+      const box = document.getElementById('modalStatus');
+      box.textContent = text;
+      box.className = type === 'success' 
+        ? 'text-xs p-2.5 rounded-lg bg-emerald-950/80 text-emerald-300 border border-emerald-800' 
+        : 'text-xs p-2.5 rounded-lg bg-rose-950/80 text-rose-300 border border-rose-800';
     }
 
     window.addEventListener('DOMContentLoaded', loadData);
