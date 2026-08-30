@@ -104,7 +104,7 @@
       <form id="addProductForm" onsubmit="handleAddProduct(event)" class="space-y-4">
         <div>
           <label class="block text-xs font-medium text-slate-300 mb-1">Produktname (Anzeigename)</label>
-          <input type="text" id="modalName" required placeholder="z.B. Pokemon Surging Sparks Booster Display" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+          <input type="text" id="modalName" required placeholder="z.B. Pokemon Surging Sparks Booster Display (Eng)" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
         </div>
 
         <div>
@@ -123,7 +123,7 @@
         <div class="pt-2 border-t border-slate-800">
           <label class="block text-xs font-medium text-slate-400 mb-1">GitHub Personal Access Token (PAT)</label>
           <input type="password" id="modalToken" placeholder="ghp_xxxxxxxxxxxx" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
-          <p class="text-[11px] text-slate-500 mt-1">Wird nur lokal im Browser gespeichert.</p>
+          <p class="text-[11px] text-slate-500 mt-1">Wird lokal im Browser gespeichert.</p>
         </div>
 
         <div id="modalStatus" class="text-xs hidden p-2.5 rounded-lg"></div>
@@ -151,11 +151,24 @@
 
     let globalData = [];
     let chartInstance = null;
-    let datasetVisibilityState = {}; // Merkt sich ein-/ausgeblendete Linien
+    let datasetVisibilityState = {};
 
     const REPO_OWNER = "paul31e";
     const REPO_NAME = "cardmarket-tracker_v3";
     const CONFIG_FILE = "config.json";
+
+    // Sichere UTF-8 Kodierung / Dekodierung für GitHub Base64 API
+    function utf8_to_b64(str) {
+      return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => {
+        return String.fromCharCode('0x' + p1);
+      }));
+    }
+
+    function b64_to_utf8(str) {
+      return decodeURIComponent(Array.prototype.map.call(atob(str), (c) => {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+    }
 
     async function loadData() {
       setRandomQuote();
@@ -235,7 +248,7 @@
       const latest = filtered[filtered.length - 1];
       const latestTime = new Date(latest.timestamp.replace(' ', 'T')).getTime();
 
-      // 1. All-Time Low (ATL seit Trackingbeginn)
+      // 1. ATL
       let atl = Infinity;
       let atlRow = null;
       filtered.forEach(r => {
@@ -257,7 +270,7 @@
       // Aktueller Bestand
       document.getElementById('statCurrentAvail').textContent = latest.available_items != null ? `${latest.available_items} Stk.` : '-';
 
-      // 2. Zeiträume
+      // 2. Rendite-Zeiträume
       const ms7d = 7 * 24 * 60 * 60 * 1000;
       const ms30d = 30 * 24 * 60 * 60 * 1000;
       const ms12m = 365 * 24 * 60 * 60 * 1000;
@@ -269,13 +282,11 @@
       const row12m = (latestTime - new Date(filtered[0].timestamp.replace(' ', 'T')).getTime() >= ms12m * 0.7) 
         ? findClosestRecord(filtered, latestTime - ms12m) : null;
 
-      // Preis-Renditen
       const currentPrice = latest.avg_robust_shipping;
       document.getElementById('statPrice7d').innerHTML = row7d ? formatDelta(currentPrice, row7d.avg_robust_shipping, true) : '-';
       document.getElementById('statPrice30d').innerHTML = row30d ? formatDelta(currentPrice, row30d.avg_robust_shipping, true) : '-';
       document.getElementById('statPrice12m').innerHTML = row12m ? formatDelta(currentPrice, row12m.avg_robust_shipping, true) : '-';
 
-      // Bestands-Änderungen
       const currentAvail = latest.available_items;
       document.getElementById('statAvail7d').innerHTML = row7d ? formatDelta(currentAvail, row7d.available_items, false) : '-';
       document.getElementById('statAvail30d').innerHTML = row30d ? formatDelta(currentAvail, row30d.available_items, false) : '-';
@@ -288,7 +299,6 @@
       const ctx = document.getElementById('priceChart').getContext('2d');
       const labels = data.map(d => d.timestamp.substring(5, 16));
 
-      // Bestehende Ausblendungs-Zustände aus dem vorherigen Chart sichern
       if (chartInstance) {
         chartInstance.data.datasets.forEach((ds, i) => {
           datasetVisibilityState[ds.label] = !chartInstance.isDatasetVisible(i);
@@ -385,7 +395,6 @@
                   ci.show(index);
                   legendItem.hidden = false;
                 }
-                // Zustand direkt im Status-Objekt mitspeichern
                 const label = ci.data.datasets[index].label;
                 datasetVisibilityState[label] = !ci.isDatasetVisible(index);
               }
@@ -484,6 +493,11 @@
         return;
       }
 
+      if (!url.startsWith('https://www.cardmarket.com/')) {
+        showStatus('Bitte gib eine gültige Cardmarket URL ein (beginnend mit https://www.cardmarket.com/).', 'error');
+        return;
+      }
+
       localStorage.setItem('gh_pat', token);
       btn.disabled = true;
       btn.textContent = 'Speichere...';
@@ -497,10 +511,19 @@
           }
         });
 
-        if (!getRes.ok) throw new Error('Konnte config.json nicht laden. Prüfe den GitHub Token.');
+        if (!getRes.ok) throw new Error('Konnte config.json nicht laden. Prüfe den GitHub Token & Reponamen.');
 
         const fileData = await getRes.json();
-        const currentContent = JSON.parse(decodeURIComponent(escape(atob(fileData.content))));
+        const jsonString = b64_to_utf8(fileData.content.replace(/\s/g, ''));
+        const currentContent = JSON.parse(jsonString);
+
+        if (!currentContent.products || !Array.isArray(currentContent.products)) {
+          currentContent.products = [];
+        }
+
+        if (currentContent.products.some(p => p.url === url)) {
+          throw new Error('Dieser Cardmarket-Link wird bereits getrackt!');
+        }
 
         const newProduct = {
           name: name,
@@ -508,14 +531,10 @@
           type: type
         };
 
-        if (currentContent.products.some(p => p.url === url)) {
-          throw new Error('Dieser Cardmarket-Link wird bereits getrackt!');
-        }
-
         currentContent.products.push(newProduct);
 
         const updatedJsonStr = JSON.stringify(currentContent, null, 2);
-        const updatedBase64 = btoa(unescape(encodeURIComponent(updatedJsonStr)));
+        const updatedBase64 = utf8_to_b64(updatedJsonStr);
 
         const putRes = await fetch(apiUrl, {
           method: 'PUT',
