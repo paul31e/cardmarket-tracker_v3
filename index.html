@@ -5,14 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GiG - Gescraped ist Geil</title>
   
+  <!-- Tailwind CSS, Chart.js, PapaParse & Supabase JS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-4 md:p-8 font-sans antialiased">
 
   <div class="max-w-6xl mx-auto space-y-6">
     
+    <!-- Top Bar & Auth State -->
     <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg relative z-40">
       <div>
         <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
@@ -22,131 +25,316 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-3">
-        
-        <div class="relative min-w-[280px]" id="searchDropdownWrapper">
-          <button id="dropdownBtn" type="button" onclick="toggleDropdown()" class="w-full bg-slate-800 border border-slate-700 hover:border-slate-600 text-white text-sm rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none transition">
-            <span id="selectedProductText" class="truncate font-medium">Artikel wählen...</span>
-            <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-            </svg>
+        <!-- Auth Button / Profile -->
+        <div id="authContainer">
+          <button onclick="openAuthModal()" id="loginBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-sm font-medium px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+            👤 Anmelden / Registrieren
           </button>
-
-          <div id="dropdownMenu" class="hidden absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 space-y-2 z-50">
-            <div class="relative">
-              <input type="text" id="productSearchInput" oninput="filterDropdownList()" placeholder="Suchen (z.B. rivals, case)..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
-            </div>
-            <div id="dropdownList" class="max-h-60 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-              </div>
+          <div id="userProfile" class="hidden flex items-center gap-2 bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-xl text-xs">
+            <span class="text-indigo-300 font-medium truncate max-w-[140px]" id="userEmailLabel">User</span>
+            <button onclick="handleLogout()" class="text-rose-400 hover:text-rose-300 ml-1 font-semibold">Abmelden</button>
           </div>
         </div>
-        
+
         <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-md">
           <span>+</span> Artikel hinzufügen
         </button>
       </div>
     </header>
 
-    <div>
-      <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Preisentwicklung (Ø Robust inkl. Versand)</h2>
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
-          <span class="text-xs text-slate-400 font-medium">Aktueller Preis inkl. Versand</span>
-          <div class="text-lg font-bold text-indigo-400 mt-1" id="statCurrentPrice">-</div>
-        </div>
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
-          <span class="text-xs text-slate-400 font-medium">7-Tage Rendite</span>
-          <div class="text-lg font-bold text-slate-200 mt-1" id="statPrice7d">-</div>
-        </div>
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
-          <span class="text-xs text-slate-400 font-medium">30-Tage Rendite</span>
-          <div class="text-lg font-bold text-slate-200 mt-1" id="statPrice30d">-</div>
-        </div>
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
-          <span class="text-xs text-slate-400 font-medium">12-Monate Rendite</span>
-          <div class="text-lg font-bold text-slate-200 mt-1" id="statPrice12m">-</div>
-        </div>
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
-          <div class="space-y-1">
-            <div class="text-[15px] font-bold text-rose-400 leading-tight" id="statPriceATL">-</div>
-            <div class="text-[15px] font-bold text-emerald-400 leading-tight" id="statPriceATH">-</div>
-          </div>
-          <span class="text-[9.5px] text-slate-500 mt-auto pt-1">Seit Trackingbeginn</span>
-        </div>
-      </div>
-    </div>
+    <!-- Tab-Navigation -->
+    <nav class="flex border-b border-slate-800 space-x-2">
+      <button onclick="switchTab('market')" id="tabBtn-market" class="tab-btn px-5 py-3 text-sm font-semibold border-b-2 border-indigo-500 text-indigo-400 transition">
+        📈 Markt-Tracker
+      </button>
+      <button onclick="switchTab('portfolio-input')" id="tabBtn-portfolio-input" class="tab-btn px-5 py-3 text-sm font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent transition">
+        💼 Mein Bestand
+      </button>
+      <button onclick="switchTab('portfolio-perf')" id="tabBtn-portfolio-perf" class="tab-btn px-5 py-3 text-sm font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent transition">
+        📊 Portfolio-Performance
+      </button>
+    </nav>
 
-    <div>
-      <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Verfügbarkeits-Dynamik (Bestandsänderung)</h2>
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
-          <span class="text-xs text-slate-400 font-medium">Aktueller Bestand</span>
-          <div class="text-lg font-bold text-amber-400 mt-1" id="statCurrentAvail">-</div>
-        </div>
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
-          <span class="text-xs text-slate-400 font-medium">Bestand Δ (7 Tage)</span>
-          <div class="text-lg font-bold text-slate-200 mt-1" id="statAvail7d">-</div>
-        </div>
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
-          <span class="text-xs text-slate-400 font-medium">Bestand Δ (30 Tage)</span>
-          <div class="text-lg font-bold text-slate-200 mt-1" id="statAvail30d">-</div>
-        </div>
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
-          <span class="text-xs text-slate-400 font-medium">Bestand Δ (12 Monate)</span>
-          <div class="text-lg font-bold text-slate-200 mt-1" id="statAvail12m">-</div>
-        </div>
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
-          <div class="space-y-1">
-            <div class="text-[15px] font-bold text-rose-400 leading-tight" id="statAvailMin">-</div>
-            <div class="text-[15px] font-bold text-emerald-400 leading-tight" id="statAvailMax">-</div>
-          </div>
-          <span class="text-[9.5px] text-slate-500 mt-auto pt-1">Seit Trackingbeginn</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg relative">
+    <!-- ================= TAB 1: MARKT-TRACKER ================= -->
+    <main id="tab-market" class="space-y-6">
       
-      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 mb-4 border-b border-slate-800/80">
-        <div>
-          <div class="flex items-center gap-2">
-            <h2 class="text-lg font-bold text-white tracking-tight" id="chartProductTitle">-</h2>
-            <span id="chartProductType" class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300"></span>
+      <!-- Filter Bar: Searchable Dropdown -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+        <span class="text-xs text-slate-400 font-medium">Artikel auswählen:</span>
+        <div class="relative min-w-[320px]" id="searchDropdownWrapper">
+          <button id="dropdownBtn" type="button" onclick="toggleDropdown()" class="w-full bg-slate-800 border border-slate-700 hover:border-slate-600 text-white text-sm rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none transition">
+            <span id="selectedProductText" class="truncate font-medium">Artikel wählen...</span>
+            <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+          <div id="dropdownMenu" class="hidden absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 space-y-2 z-50">
+            <input type="text" id="productSearchInput" oninput="filterDropdownList()" placeholder="Suchen (z.B. rivals, case)..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+            <div id="dropdownList" class="max-h-60 overflow-y-auto space-y-1 pr-1"></div>
           </div>
-          <p class="text-xs text-slate-500 mt-0.5">Zeitlicher Verlauf von Preisen und Verfügbarkeit</p>
+        </div>
+      </div>
+
+      <!-- KPI Metric Cards: Preis & Renditen -->
+      <div>
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Preisentwicklung (Ø Robust inkl. Versand)</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+            <span class="text-xs text-slate-400 font-medium">Aktueller Preis inkl. Versand</span>
+            <div class="text-lg font-bold text-indigo-400 mt-1" id="statCurrentPrice">-</div>
+          </div>
+          <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+            <span class="text-xs text-slate-400 font-medium">7-Tage Rendite</span>
+            <div class="text-lg font-bold text-slate-200 mt-1" id="statPrice7d">-</div>
+          </div>
+          <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+            <span class="text-xs text-slate-400 font-medium">30-Tage Rendite</span>
+            <div class="text-lg font-bold text-slate-200 mt-1" id="statPrice30d">-</div>
+          </div>
+          <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+            <span class="text-xs text-slate-400 font-medium">12-Monate Rendite</span>
+            <div class="text-lg font-bold text-slate-200 mt-1" id="statPrice12m">-</div>
+          </div>
+          <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
+            <div class="space-y-1">
+              <div class="text-[15px] font-bold text-rose-400 leading-tight" id="statPriceATL">-</div>
+              <div class="text-[15px] font-bold text-emerald-400 leading-tight" id="statPriceATH">-</div>
+            </div>
+            <span class="text-[9.5px] text-slate-500 mt-auto pt-1">Seit Trackingbeginn</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Metric Cards: Bestands-Dynamik -->
+      <div>
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Verfügbarkeits-Dynamik (Bestandsänderung)</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+            <span class="text-xs text-slate-400 font-medium">Aktueller Bestand</span>
+            <div class="text-lg font-bold text-amber-400 mt-1" id="statCurrentAvail">-</div>
+          </div>
+          <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+            <span class="text-xs text-slate-400 font-medium">Bestand Δ (7 Tage)</span>
+            <div class="text-lg font-bold text-slate-200 mt-1" id="statAvail7d">-</div>
+          </div>
+          <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+            <span class="text-xs text-slate-400 font-medium">Bestand Δ (30 Tage)</span>
+            <div class="text-lg font-bold text-slate-200 mt-1" id="statAvail30d">-</div>
+          </div>
+          <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+            <span class="text-xs text-slate-400 font-medium">Bestand Δ (12 Monate)</span>
+            <div class="text-lg font-bold text-slate-200 mt-1" id="statAvail12m">-</div>
+          </div>
+          <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
+            <div class="space-y-1">
+              <div class="text-[15px] font-bold text-rose-400 leading-tight" id="statAvailMin">-</div>
+              <div class="text-[15px] font-bold text-emerald-400 leading-tight" id="statAvailMax">-</div>
+            </div>
+            <span class="text-[9.5px] text-slate-500 mt-auto pt-1">Seit Trackingbeginn</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart Container -->
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg relative">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 mb-4 border-b border-slate-800/80">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-lg font-bold text-white tracking-tight" id="chartProductTitle">-</h2>
+              <span id="chartProductType" class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300"></span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Zeitlicher Verlauf von Preisen und Marktvolumen</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="inline-flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold" id="timeFilterButtons">
+              <button onclick="setTimeRange('7d')" data-range="7d" class="time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">7T</button>
+              <button onclick="setTimeRange('30d')" data-range="30d" class="time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">1M</button>
+              <button onclick="setTimeRange('6m')" data-range="6m" class="time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">6M</button>
+              <button onclick="setTimeRange('12m')" data-range="12m" class="time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">1J</button>
+              <button onclick="setTimeRange('ytd')" data-range="ytd" class="time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">YTD</button>
+              <button onclick="setTimeRange('all')" data-range="all" class="time-btn px-2.5 py-1 rounded-lg transition bg-indigo-600 text-white shadow-sm">Alles</button>
+            </div>
+            
+            <a id="chartCmLink" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700/80 hover:border-indigo-500/50 transition shadow-sm w-fit">
+              <span>Auf Cardmarket öffnen</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+            </a>
+          </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3">
-          <div class="inline-flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold" id="timeFilterButtons">
-            <button onclick="setTimeRange('7d')" data-range="7d" class="time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">7T</button>
-            <button onclick="setTimeRange('30d')" data-range="30d" class="time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">1M</button>
-            <button onclick="setTimeRange('6m')" data-range="6m" class="time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">6M</button>
-            <button onclick="setTimeRange('12m')" data-range="12m" class="time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">1J</button>
-            <button onclick="setTimeRange('ytd')" data-range="ytd" class="time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">YTD</button>
-            <button onclick="setTimeRange('all')" data-range="all" class="time-btn px-2.5 py-1 rounded-lg transition bg-indigo-600 text-white shadow-sm">Alles</button>
+        <div class="h-[500px] w-full relative">
+          <canvas id="priceChart"></canvas>
+        </div>
+
+        <div id="legendTooltip" class="absolute pointer-events-none hidden z-30 bg-slate-950/95 border border-slate-700/80 text-xs text-slate-200 px-3 py-2 rounded-xl shadow-xl backdrop-blur-sm max-w-xs transition-opacity duration-150"></div>
+
+        <div class="mt-4 text-xs text-slate-500 text-center">
+          💡 Klicke auf Einträge in der Legende zum Aus-/Einblenden. Große Punkte im Chart markieren Allzeittiefs (ATL) und Allzeithochs (ATH).
+        </div>
+      </div>
+    </main>
+
+    <!-- ================= TAB 2: MEIN BESTAND (INPUT) ================= -->
+    <main id="tab-portfolio-input" class="hidden space-y-6">
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-6 border-b border-slate-800">
+          <div>
+            <h2 class="text-xl font-bold text-white tracking-tight">💼 Mein Portfolio-Bestand</h2>
+            <p class="text-xs text-slate-400 mt-1">Trage deine gekauften Stückzahlen und durchschnittlichen Einkaufspreise (EK) ein.</p>
           </div>
           
-          <a id="chartCmLink" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700/80 hover:border-indigo-500/50 transition shadow-sm w-fit">
-            <span>Auf Cardmarket öffnen</span>
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-            </svg>
-          </a>
+          <button onclick="savePortfolioToSupabase()" id="savePortfolioBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow-lg">
+            <span>💾</span> Portfolio speichern
+          </button>
+        </div>
+
+        <!-- Login Alert falls ausgeloggt -->
+        <div id="portfolioLoggedOutWarning" class="p-4 rounded-xl bg-amber-950/50 border border-amber-800 text-amber-300 text-xs flex items-center justify-between gap-3 mb-6">
+          <span>⚠️ Du bist nicht eingeloggt. Deine Bestände werden nur lokal gespeichert. Melde dich an, um sie sicher in der Cloud zu synchronisieren!</span>
+          <button onclick="openAuthModal()" class="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-medium whitespace-nowrap">Anmelden</button>
+        </div>
+
+        <!-- Portfolio Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-950/80 text-xs uppercase text-slate-400 border-b border-slate-800">
+              <tr>
+                <th class="p-3.5 rounded-l-xl">Artikel (Alphabetisch)</th>
+                <th class="p-3.5">Typ</th>
+                <th class="p-3.5 w-32">Stückzahl</th>
+                <th class="p-3.5 w-36">Mein Ø EK (€)</th>
+                <th class="p-3.5 text-right">Aktueller Marktpreis</th>
+                <th class="p-3.5 text-right rounded-r-xl">Gesamtwert</th>
+              </tr>
+            </thead>
+            <tbody id="portfolioTableBody" class="divide-y divide-slate-800/60">
+              <!-- Dynamisch befüllt -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex justify-end pt-6">
+          <button onclick="savePortfolioToSupabase()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg">
+            <span>💾</span> Portfolio speichern
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- ================= TAB 3: PORTFOLIO-PERFORMANCE ================= -->
+    <main id="tab-portfolio-perf" class="hidden space-y-6">
+      
+      <!-- Portfolio KPIs -->
+      <div>
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Portfolio Übersicht & Rendite</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+            <span class="text-xs text-slate-400 font-medium">Portfolio-Gesamtwert</span>
+            <div class="text-lg font-bold text-indigo-400 mt-1" id="portStatTotalValue">0.00 €</div>
+            <span class="text-[10px] text-slate-500">bezogen auf Ø Robust</span>
+          </div>
+          <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+            <span class="text-xs text-slate-400 font-medium">Gesamtertrag (ROI)</span>
+            <div class="text-lg font-bold text-slate-200 mt-1" id="portStatROI">-</div>
+            <span class="text-[10px] text-slate-500">Gewinn / Verlust</span>
+          </div>
+          <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+            <span class="text-xs text-slate-400 font-medium">Investiertes Kapital</span>
+            <div class="text-lg font-bold text-slate-200 mt-1" id="portStatInvested">0.00 €</div>
+            <span class="text-[10px] text-slate-500">Summe aller EKs</span>
+          </div>
+          <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+            <span class="text-xs text-slate-400 font-medium">Positionen & Einheiten</span>
+            <div class="text-lg font-bold text-amber-400 mt-1" id="portStatItemsCount">0 Pos. / 0 Stk.</div>
+            <span class="text-[10px] text-slate-500">Bestand im Depot</span>
+          </div>
+          <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+            <span class="text-xs text-slate-400 font-medium">Größte Position</span>
+            <div class="text-xs font-bold text-purple-300 truncate mt-1" id="portStatTopPosition">-</div>
+            <span class="text-[10px] text-slate-500" id="portStatTopPositionShare">-</span>
+          </div>
         </div>
       </div>
 
-      <div class="h-[500px] w-full relative">
-        <canvas id="priceChart"></canvas>
+      <!-- Performance Zeiträume -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800">
+          <span class="text-xs text-slate-400 font-medium">7-Tage Performance</span>
+          <div class="text-base font-bold text-slate-200 mt-1" id="portStatPerf7d">-</div>
+        </div>
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800">
+          <span class="text-xs text-slate-400 font-medium">30-Tage Performance</span>
+          <div class="text-base font-bold text-slate-200 mt-1" id="portStatPerf30d">-</div>
+        </div>
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800">
+          <span class="text-xs text-slate-400 font-medium">6-Monate Performance</span>
+          <div class="text-base font-bold text-slate-200 mt-1" id="portStatPerf6m">-</div>
+        </div>
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800">
+          <span class="text-xs text-slate-400 font-medium">12-Monate Performance</span>
+          <div class="text-base font-bold text-slate-200 mt-1" id="portStatPerf12m">-</div>
+        </div>
       </div>
 
-      <div id="legendTooltip" class="absolute pointer-events-none hidden z-30 bg-slate-950/95 border border-slate-700/80 text-xs text-slate-200 px-3 py-2 rounded-xl shadow-xl backdrop-blur-sm max-w-xs transition-opacity duration-150"></div>
+      <!-- Portfolio-Chart -->
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-4 border-b border-slate-800/80">
+          <div>
+            <h2 class="text-lg font-bold text-white tracking-tight">📈 Gesamtwert-Entwicklung</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Historischer Portfoliowert (Ø Robust ohne Versand)</p>
+          </div>
 
-      <div class="mt-4 text-xs text-slate-500 text-center">
-        💡 Klicke auf Einträge in der Legende zum Aus-/Einblenden. Große Punkte im Chart markieren Allzeittiefs (ATL) und Allzeithochs (ATH).
+          <!-- Zeitraum Filter für Portfolio -->
+          <div class="inline-flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold" id="portTimeFilterButtons">
+            <button onclick="setPortTimeRange('7d')" data-range="7d" class="port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">7T</button>
+            <button onclick="setPortTimeRange('30d')" data-range="30d" class="port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">1M</button>
+            <button onclick="setPortTimeRange('6m')" data-range="6m" class="port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">6M</button>
+            <button onclick="setPortTimeRange('12m')" data-range="12m" class="port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">1J</button>
+            <button onclick="setPortTimeRange('ytd')" data-range="ytd" class="port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">YTD</button>
+            <button onclick="setPortTimeRange('all')" data-range="all" class="port-time-btn px-2.5 py-1 rounded-lg transition bg-indigo-600 text-white shadow-sm">Alles</button>
+          </div>
+        </div>
+
+        <div class="h-[500px] w-full relative">
+          <canvas id="portfolioChart"></canvas>
+        </div>
       </div>
-    </div>
+    </main>
 
   </div>
 
+  <!-- Modal: Supabase Auth (Login / Registrieren) -->
+  <div id="authModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+        <h3 class="text-base font-bold text-white" id="authModalTitle">Anmelden</h3>
+        <button onclick="closeAuthModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
+      </div>
+
+      <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">E-Mail</label>
+          <input type="email" id="authEmail" required placeholder="name@example.com" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Passwort</label>
+          <input type="password" id="authPassword" required placeholder="••••••••" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div id="authStatus" class="text-xs hidden p-2.5 rounded-lg"></div>
+
+        <button type="submit" id="authSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium py-2.5 rounded-xl transition">
+          Einloggen
+        </button>
+      </form>
+
+      <div class="text-center text-xs text-slate-400 pt-2 border-t border-slate-800">
+        <span id="authToggleText">Noch kein Konto?</span>
+        <button type="button" onclick="toggleAuthMode()" id="authToggleBtn" class="text-indigo-400 hover:text-indigo-300 font-semibold ml-1">Jetzt registrieren</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Artikel hinzufügen (GitHub) -->
   <div id="addModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
       <div class="flex justify-between items-center pb-2 border-b border-slate-800">
@@ -190,6 +378,16 @@
   </div>
 
   <script>
+    // ================= SUPABASE KONFIGURATION =================
+    const SUPABASE_URL = "https://nxtpixbuesueouszfocg.supabase.co";
+    // Trage hier deinen vollständigen Anon-Key aus Screenshot 3 ein:
+    const SUPABASE_ANON_KEY = "DEIN_SUPABASE_ANON_KEY_HIER_EINFÜGEN";
+    
+    let supabaseClient = null;
+    if (SUPABASE_ANON_KEY !== "DEIN_SUPABASE_ANON_KEY_HIER_EINFÜGEN") {
+      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+
     const quotes = [
       "Wie geil ist Dustin?!",
       "Eyyy det is n Softklos, nicht einfach zuknallen wie beim Trabi",
@@ -204,9 +402,16 @@
 
     let globalData = [];
     let configProducts = [];
+    let userPortfolioMap = {}; // { product_name: { quantity: 0, buy_price: 0 } }
+    let currentUser = null;
+    let authIsSignUp = false;
+
     let currentSelectedProduct = "";
-    let currentTimeRange = "all"; // Merkt sich den gewählten Zeitraum-Filter
+    let currentTimeRange = "all";
+    let portCurrentTimeRange = "all";
+
     let chartInstance = null;
+    let portfolioChartInstance = null;
     let datasetVisibilityState = {};
 
     const REPO_OWNER = "paul31e";
@@ -221,20 +426,428 @@
       return shortYear ? `${day}.${month}.${year.substring(2)}` : `${day}.${month}.${year}`;
     }
 
-    function utf8_to_b64(str) {
-      return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => {
-        return String.fromCharCode('0x' + p1);
-      }));
+    // --- TAB SWITCHING ---
+    function switchTab(tabId) {
+      document.querySelectorAll('main').forEach(m => m.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-indigo-500', 'text-indigo-400');
+        btn.classList.add('border-transparent', 'text-slate-400');
+      });
+
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tabBtn-${tabId}`);
+      activeBtn.classList.add('border-indigo-500', 'text-indigo-400');
+      activeBtn.classList.remove('border-transparent', 'text-slate-400');
+
+      if (tabId === 'portfolio-input') {
+        renderPortfolioTable();
+      } else if (tabId === 'portfolio-perf') {
+        updatePortfolioDashboard();
+      }
     }
 
-    function b64_to_utf8(str) {
-      return decodeURIComponent(Array.prototype.map.call(atob(str), (c) => {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
+    // --- AUTH LOGIK ---
+    async function initAuth() {
+      if (!supabaseClient) return;
+
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session) {
+        currentUser = session.user;
+        updateAuthUI();
+        loadUserPortfolio();
+      }
+
+      supabaseClient.auth.onAuthStateChange((_event, session) => {
+        currentUser = session ? session.user : null;
+        updateAuthUI();
+        if (currentUser) {
+          loadUserPortfolio();
+        } else {
+          userPortfolioMap = JSON.parse(localStorage.getItem('local_user_portfolio') || '{}');
+          renderPortfolioTable();
+          updatePortfolioDashboard();
+        }
+      });
     }
 
+    function updateAuthUI() {
+      const loginBtn = document.getElementById('loginBtn');
+      const userProfile = document.getElementById('userProfile');
+      const warning = document.getElementById('portfolioLoggedOutWarning');
+
+      if (currentUser) {
+        loginBtn.classList.add('hidden');
+        userProfile.classList.remove('hidden');
+        document.getElementById('userEmailLabel').textContent = currentUser.email;
+        if (warning) warning.classList.add('hidden');
+      } else {
+        loginBtn.classList.remove('hidden');
+        userProfile.classList.add('hidden');
+        if (warning) warning.classList.remove('hidden');
+      }
+    }
+
+    function openAuthModal() {
+      document.getElementById('authModal').classList.remove('hidden');
+      document.getElementById('authStatus').className = 'text-xs hidden p-2.5 rounded-lg';
+    }
+
+    function closeAuthModal() {
+      document.getElementById('authModal').classList.add('hidden');
+    }
+
+    function toggleAuthMode() {
+      authIsSignUp = !authIsSignUp;
+      document.getElementById('authModalTitle').textContent = authIsSignUp ? 'Konto erstellen' : 'Anmelden';
+      document.getElementById('authSubmitBtn').textContent = authIsSignUp ? 'Registrieren' : 'Einloggen';
+      document.getElementById('authToggleText').textContent = authIsSignUp ? 'Bereits ein Konto?' : 'Noch kein Konto?';
+      document.getElementById('authToggleBtn').textContent = authIsSignUp ? 'Jetzt anmelden' : 'Jetzt registrieren';
+      document.getElementById('authStatus').className = 'text-xs hidden p-2.5 rounded-lg';
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      const statusBox = document.getElementById('authStatus');
+
+      if (!supabaseClient) {
+        statusBox.textContent = 'Supabase Anon Key noch nicht hinterlegt!';
+        statusBox.className = 'text-xs p-2.5 rounded-lg bg-rose-950 text-rose-300 border border-rose-800';
+        return;
+      }
+
+      try {
+        if (authIsSignUp) {
+          const { error } = await supabaseClient.auth.signUp({ email, password });
+          if (error) throw error;
+          statusBox.textContent = '✅ Registriert! Prüfe ggf. deine E-Mail oder logge dich direkt ein.';
+          statusBox.className = 'text-xs p-2.5 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-800';
+        } else {
+          const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          closeAuthModal();
+        }
+      } catch (err) {
+        statusBox.textContent = `⚠️ ${err.message}`;
+        statusBox.className = 'text-xs p-2.5 rounded-lg bg-rose-950 text-rose-300 border border-rose-800';
+      }
+    }
+
+    async function handleLogout() {
+      if (supabaseClient) {
+        await supabaseClient.auth.signOut();
+      }
+      currentUser = null;
+      updateAuthUI();
+    }
+
+    // --- PORTFOLIO LADEN & SPEICHERN ---
+    async function loadUserPortfolio() {
+      if (currentUser && supabaseClient) {
+        const { data, error } = await supabaseClient
+          .from('user_portfolios')
+          .select('product_name, quantity, buy_price');
+
+        if (!error && data) {
+          userPortfolioMap = {};
+          data.forEach(item => {
+            userPortfolioMap[item.product_name] = {
+              quantity: parseFloat(item.quantity) || 0,
+              buy_price: parseFloat(item.buy_price) || 0
+            };
+          });
+        }
+      } else {
+        userPortfolioMap = JSON.parse(localStorage.getItem('local_user_portfolio') || '{}');
+      }
+      renderPortfolioTable();
+      updatePortfolioDashboard();
+    }
+
+    async function savePortfolioToSupabase() {
+      // Eingaben aus Tabelle auslesen
+      const rows = document.querySelectorAll('#portfolioTableBody tr');
+      rows.forEach(r => {
+        const pName = r.dataset.product;
+        const qInput = r.querySelector('.port-qty-input');
+        const pInput = r.querySelector('.port-price-input');
+        if (pName && qInput && pInput) {
+          userPortfolioMap[pName] = {
+            quantity: Math.max(0, parseFloat(qInput.value) || 0),
+            buy_price: Math.max(0, parseFloat(pInput.value) || 0)
+          };
+        }
+      });
+
+      // Lokal speichern als Backup
+      localStorage.setItem('local_user_portfolio', JSON.stringify(userPortfolioMap));
+
+      if (currentUser && supabaseClient) {
+        const payload = Object.keys(userPortfolioMap).map(pName => ({
+          user_id: currentUser.id,
+          product_name: pName,
+          quantity: userPortfolioMap[pName].quantity,
+          buy_price: userPortfolioMap[pName].buy_price,
+          updated_at: new Date().toISOString()
+        }));
+
+        const { error } = await supabaseClient
+          .from('user_portfolios')
+          .upsert(payload, { onConflict: 'user_id, product_name' });
+
+        if (!error) {
+          alert('✅ Portfolio erfolgreich in der Cloud gespeichert!');
+        } else {
+          alert('⚠️ Fehler beim Speichern in Supabase: ' + error.message);
+        }
+      } else {
+        alert('✅ Portfolio lokal in deinem Browser gespeichert!');
+      }
+
+      renderPortfolioTable();
+      updatePortfolioDashboard();
+    }
+
+    function renderPortfolioTable() {
+      const tbody = document.getElementById('portfolioTableBody');
+      tbody.innerHTML = '';
+
+      // Alphabetisch sortieren
+      const sortedProducts = [...configProducts].sort((a, b) => a.name.localeCompare(b.name));
+
+      sortedProducts.forEach(item => {
+        const pName = item.name;
+        const pType = (item.type || 'single').toLowerCase();
+        const userItem = userPortfolioMap[pName] || { quantity: 0, buy_price: 0 };
+
+        // Aktuellen Marktpreis (Ø Robust ohne Versand) ermitteln
+        const productRows = globalData.filter(d => d.product_name === pName);
+        const latest = productRows[productRows.length - 1];
+        const curMarketPrice = latest ? (latest.avg_robust || 0) : 0;
+        const totalVal = (userItem.quantity * curMarketPrice).toFixed(2);
+
+        const tr = document.createElement('tr');
+        tr.dataset.product = pName;
+        tr.className = 'hover:bg-slate-800/40 transition';
+        tr.innerHTML = `
+          <td class="p-3.5 font-medium text-white">${pName}</td>
+          <td class="p-3.5">
+            <span class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full ${pType === 'case' ? 'bg-purple-950 border border-purple-700 text-purple-300' : 'bg-indigo-950 border border-indigo-700 text-indigo-300'}">${pType}</span>
+          </td>
+          <td class="p-3.5">
+            <input type="number" min="0" step="1" value="${userItem.quantity}" class="port-qty-input w-24 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none">
+          </td>
+          <td class="p-3.5">
+            <input type="number" min="0" step="0.5" value="${userItem.buy_price || ''}" placeholder="0.00" class="port-price-input w-28 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none">
+          </td>
+          <td class="p-3.5 text-right font-medium text-slate-300">${curMarketPrice ? curMarketPrice.toFixed(2) + ' €' : '-'}</td>
+          <td class="p-3.5 text-right font-bold text-indigo-400">${totalVal > 0 ? totalVal + ' €' : '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // --- PORTFOLIO PERFORMANCE BERECHNUNG ---
+    function updatePortfolioDashboard() {
+      // 1. Statische KPIs
+      let totalCurrentValue = 0;
+      let totalInvested = 0;
+      let totalItemsQty = 0;
+      let totalPositionsCount = 0;
+
+      let topPosName = '-';
+      let topPosVal = 0;
+
+      Object.keys(userPortfolioMap).forEach(pName => {
+        const u = userPortfolioMap[pName];
+        if (u.quantity > 0) {
+          totalPositionsCount++;
+          totalItemsQty += u.quantity;
+          totalInvested += (u.quantity * u.buy_price);
+
+          const productRows = globalData.filter(d => d.product_name === pName);
+          const latest = productRows[productRows.length - 1];
+          const curPrice = latest ? (latest.avg_robust || 0) : 0;
+          const posVal = u.quantity * curPrice;
+          totalCurrentValue += posVal;
+
+          if (posVal > topPosVal) {
+            topPosVal = posVal;
+            topPosName = pName;
+          }
+        }
+      });
+
+      const roiDiff = totalCurrentValue - totalInvested;
+      const roiPct = totalInvested > 0 ? (roiDiff / totalInvested) * 100 : 0;
+      const roiSign = roiDiff >= 0 ? '+' : '';
+
+      document.getElementById('portStatTotalValue').textContent = `${totalCurrentValue.toFixed(2)} €`;
+      document.getElementById('portStatInvested').textContent = `${totalInvested.toFixed(2)} €`;
+      document.getElementById('portStatItemsCount').textContent = `${totalPositionsCount} Pos. / ${totalItemsQty} Stk.`;
+
+      if (totalInvested > 0) {
+        const roiColor = roiDiff >= 0 ? 'text-emerald-400' : 'text-rose-400';
+        document.getElementById('portStatROI').innerHTML = `<span class="${roiColor}">${roiSign}${roiPct.toFixed(1)}%</span> <span class="text-xs text-slate-300 font-normal">(${roiSign}${roiDiff.toFixed(2)} €)</span>`;
+      } else {
+        document.getElementById('portStatROI').textContent = '-';
+      }
+
+      if (topPosVal > 0 && totalCurrentValue > 0) {
+        const share = ((topPosVal / totalCurrentValue) * 100).toFixed(1);
+        document.getElementById('portStatTopPosition').textContent = topPosName;
+        document.getElementById('portStatTopPositionShare').textContent = `${topPosVal.toFixed(2)} € (${share}% vom Depot)`;
+      } else {
+        document.getElementById('portStatTopPosition').textContent = '-';
+        document.getElementById('portStatTopPositionShare').textContent = '-';
+      }
+
+      // 2. Zeitliche Performance-Serie berechnen
+      const timestamps = [...new Set(globalData.map(d => d.timestamp))].sort((a, b) => new Date(a.replace(' ', 'T')) - new Date(b.replace(' ', 'T')));
+
+      const portfolioHistory = timestamps.map(ts => {
+        let valueAtTs = 0;
+        Object.keys(userPortfolioMap).forEach(pName => {
+          const qty = userPortfolioMap[pName].quantity;
+          if (qty > 0) {
+            const match = globalData.find(d => d.timestamp === ts && d.product_name === pName);
+            if (match && match.avg_robust) {
+              valueAtTs += (qty * match.avg_robust);
+            }
+          }
+        });
+        return { timestamp: ts, total_value: roundNum(valueAtTs, 2) };
+      });
+
+      // 3. Rendite-Kacheln für Portfolio
+      if (portfolioHistory.length > 1) {
+        const latestTime = new Date(portfolioHistory[portfolioHistory.length - 1].timestamp.replace(' ', 'T')).getTime();
+        const msDay = 24 * 60 * 60 * 1000;
+
+        const row7d = findClosestPortRecord(portfolioHistory, latestTime - 7 * msDay);
+        const row30d = findClosestPortRecord(portfolioHistory, latestTime - 30 * msDay);
+        const row6m = findClosestPortRecord(portfolioHistory, latestTime - 180 * msDay);
+        const row12m = findClosestPortRecord(portfolioHistory, latestTime - 365 * msDay);
+
+        const curVal = totalCurrentValue;
+        document.getElementById('portStatPerf7d').innerHTML = row7d ? formatDelta(curVal, row7d.total_value, true) : '-';
+        document.getElementById('portStatPerf30d').innerHTML = row30d ? formatDelta(curVal, row30d.total_value, true) : '-';
+        document.getElementById('portStatPerf6m').innerHTML = row6m ? formatDelta(curVal, row6m.total_value, true) : '-';
+        document.getElementById('portStatPerf12m').innerHTML = row12m ? formatDelta(curVal, row12m.total_value, true) : '-';
+      }
+
+      // 4. Portfolio Graph
+      const filteredPortHistory = filterPortHistoryByTimeRange(portfolioHistory, portCurrentTimeRange);
+      renderPortfolioChart(filteredPortHistory);
+    }
+
+    function roundNum(val, dec) {
+      return Number(Math.round(val + 'e' + dec) + 'e-' + dec);
+    }
+
+    function findClosestPortRecord(data, targetTime) {
+      if (data.length < 2) return null;
+      let closest = null, minDiff = Infinity;
+      for (const row of data) {
+        const rowTime = new Date(row.timestamp.replace(' ', 'T')).getTime();
+        const diff = Math.abs(rowTime - targetTime);
+        if (diff < minDiff) { minDiff = diff; closest = row; }
+      }
+      return closest;
+    }
+
+    function setPortTimeRange(range) {
+      portCurrentTimeRange = range;
+      document.querySelectorAll('#portTimeFilterButtons .port-time-btn').forEach(btn => {
+        if (btn.dataset.range === range) {
+          btn.className = 'port-time-btn px-2.5 py-1 rounded-lg transition bg-indigo-600 text-white shadow-sm';
+        } else {
+          btn.className = 'port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white';
+        }
+      });
+      updatePortfolioDashboard();
+    }
+
+    function filterPortHistoryByTimeRange(data, range) {
+      if (range === 'all' || data.length === 0) return data;
+      const latest = data[data.length - 1];
+      const latestTime = new Date(latest.timestamp.replace(' ', 'T')).getTime();
+      let startTime = 0;
+      const msDay = 24 * 60 * 60 * 1000;
+
+      if (range === '7d') startTime = latestTime - 7 * msDay;
+      else if (range === '30d') startTime = latestTime - 30 * msDay;
+      else if (range === '6m') startTime = latestTime - 180 * msDay;
+      else if (range === '12m') startTime = latestTime - 365 * msDay;
+      else if (range === 'ytd') {
+        const latestDate = new Date(latest.timestamp.replace(' ', 'T'));
+        startTime = new Date(Date.UTC(latestDate.getUTCFullYear(), 0, 1, 0, 0, 0)).getTime();
+      }
+      return data.filter(d => new Date(d.timestamp.replace(' ', 'T')).getTime() >= startTime);
+    }
+
+    function renderPortfolioChart(data) {
+      const ctx = document.getElementById('portfolioChart').getContext('2d');
+      const labels = data.map(d => formatDateGerman(d.timestamp, false));
+      const values = data.map(d => d.total_value);
+
+      if (portfolioChartInstance) {
+        portfolioChartInstance.destroy();
+      }
+
+      portfolioChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Portfolio-Gesamtwert (€)',
+            data: values,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            fill: true,
+            tension: 0.3,
+            borderWidth: 3,
+            pointRadius: 2,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#020617',
+              borderColor: '#334155',
+              borderWidth: 1,
+              padding: 12,
+              callbacks: {
+                title: function(items) {
+                  const idx = items[0].dataIndex;
+                  return `📅 ${formatDateGerman(data[idx].timestamp, false)}`;
+                },
+                label: function(context) {
+                  return `Gesamtwert: ${context.parsed.y.toFixed(2)} €`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', maxTicksLimit: 10 } },
+            y: {
+              grid: { color: '#1e293b' },
+              ticks: { color: '#10b981', callback: val => val + ' €' }
+            }
+          }
+        }
+      });
+    }
+
+    // --- STANDARD INIT & MARKT TRACKER ---
     async function loadData() {
       setRandomQuote();
+      await initAuth();
 
       try {
         const confRes = await fetch('config.json?v=' + new Date().getTime());
@@ -255,42 +868,33 @@
         complete: function(results) {
           globalData = results.data.filter(row => row.product_name && row.timestamp);
           initSearchableDropdown();
+          renderPortfolioTable();
+          updatePortfolioDashboard();
         }
       });
     }
 
-    // --- Searchable Custom Dropdown ---
     function initSearchableDropdown() {
       const products = [...new Set(globalData.map(item => item.product_name))];
       renderDropdownItems(products);
-
-      if (products.length > 0) {
-        selectProduct(products[0]);
-      }
+      if (products.length > 0) selectProduct(products[0]);
     }
 
     function renderDropdownItems(products) {
       const listContainer = document.getElementById('dropdownList');
       listContainer.innerHTML = '';
-
       if (products.length === 0) {
         listContainer.innerHTML = '<div class="text-xs text-slate-500 p-2 text-center">Kein Artikel gefunden</div>';
         return;
       }
-
       products.forEach(p => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = `w-full text-left px-3 py-2 rounded-xl text-xs transition flex items-center justify-between ${
-          p === currentSelectedProduct 
-            ? 'bg-indigo-600 text-white font-medium' 
-            : 'text-slate-300 hover:bg-slate-800'
+          p === currentSelectedProduct ? 'bg-indigo-600 text-white font-medium' : 'text-slate-300 hover:bg-slate-800'
         }`;
         btn.innerHTML = `<span class="truncate">${p}</span>`;
-        btn.onclick = () => {
-          selectProduct(p);
-          toggleDropdown(false);
-        };
+        btn.onclick = () => { selectProduct(p); toggleDropdown(false); };
         listContainer.appendChild(btn);
       });
     }
@@ -298,15 +902,12 @@
     function filterDropdownList() {
       const query = document.getElementById('productSearchInput').value.toLowerCase();
       const products = [...new Set(globalData.map(item => item.product_name))];
-      const filtered = products.filter(p => p.toLowerCase().includes(query));
-      renderDropdownItems(filtered);
+      renderDropdownItems(products.filter(p => p.toLowerCase().includes(query)));
     }
 
     function toggleDropdown(forceState = null) {
       const menu = document.getElementById('dropdownMenu');
-      const isHidden = menu.classList.contains('hidden');
-      const shouldOpen = forceState !== null ? forceState : isHidden;
-
+      const shouldOpen = forceState !== null ? forceState : menu.classList.contains('hidden');
       if (shouldOpen) {
         menu.classList.remove('hidden');
         document.getElementById('productSearchInput').focus();
@@ -315,30 +916,21 @@
       }
     }
 
-    // Klick außerhalb schließt das Dropdown
     document.addEventListener('click', (e) => {
       const wrapper = document.getElementById('searchDropdownWrapper');
-      if (wrapper && !wrapper.contains(e.target)) {
-        toggleDropdown(false);
-      }
+      if (wrapper && !wrapper.contains(e.target)) toggleDropdown(false);
     });
 
     function selectProduct(productName) {
       currentSelectedProduct = productName;
       document.getElementById('selectedProductText').textContent = productName;
-      
-      // Suchfeld leeren & Liste zurücksetzen
       document.getElementById('productSearchInput').value = '';
       filterDropdownList();
-
       updateDashboard(productName);
     }
 
-    // --- Zeitraum-Filter (7T, 1M, 6M, 1J, YTD, Alles) ---
     function setTimeRange(range) {
       currentTimeRange = range;
-
-      // Button-Styling anpassen
       document.querySelectorAll('#timeFilterButtons .time-btn').forEach(btn => {
         if (btn.dataset.range === range) {
           btn.className = 'time-btn px-2.5 py-1 rounded-lg transition bg-indigo-600 text-white shadow-sm';
@@ -346,50 +938,33 @@
           btn.className = 'time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white';
         }
       });
-
-      if (currentSelectedProduct) {
-        updateDashboard(currentSelectedProduct);
-      }
+      if (currentSelectedProduct) updateDashboard(currentSelectedProduct);
     }
 
     function filterDataByTimeRange(data, range) {
       if (range === 'all' || data.length === 0) return data;
-
       const latest = data[data.length - 1];
       const latestTime = new Date(latest.timestamp.replace(' ', 'T')).getTime();
       let startTime = 0;
-
       const msDay = 24 * 60 * 60 * 1000;
-
-      if (range === '7d') {
-        startTime = latestTime - 7 * msDay;
-      } else if (range === '30d') {
-        startTime = latestTime - 30 * msDay;
-      } else if (range === '6m') {
-        startTime = latestTime - 180 * msDay;
-      } else if (range === '12m') {
-        startTime = latestTime - 365 * msDay;
-      } else if (range === 'ytd') {
+      if (range === '7d') startTime = latestTime - 7 * msDay;
+      else if (range === '30d') startTime = latestTime - 30 * msDay;
+      else if (range === '6m') startTime = latestTime - 180 * msDay;
+      else if (range === '12m') startTime = latestTime - 365 * msDay;
+      else if (range === 'ytd') {
         const latestDate = new Date(latest.timestamp.replace(' ', 'T'));
-        const ytdStart = new Date(Date.UTC(latestDate.getUTCFullYear(), 0, 1, 0, 0, 0));
-        startTime = ytdStart.getTime();
+        startTime = new Date(Date.UTC(latestDate.getUTCFullYear(), 0, 1, 0, 0, 0)).getTime();
       }
-
       return data.filter(d => new Date(d.timestamp.replace(' ', 'T')).getTime() >= startTime);
     }
 
     function findClosestRecord(data, targetTime) {
       if (data.length < 2) return null;
-      let closest = null;
-      let minDiff = Infinity;
-
+      let closest = null, minDiff = Infinity;
       for (const row of data) {
         const rowTime = new Date(row.timestamp.replace(' ', 'T')).getTime();
         const diff = Math.abs(rowTime - targetTime);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closest = row;
-        }
+        if (diff < minDiff) { minDiff = diff; closest = row; }
       }
       return closest;
     }
@@ -399,16 +974,9 @@
       const diff = current - past;
       const pct = (diff / past) * 100;
       const sign = diff > 0 ? '+' : '';
-      
       const pctFormatted = `${sign}${pct.toFixed(1)}%`;
-      const valFormatted = isPrice 
-        ? `${sign}${diff.toFixed(2)} €`
-        : `${sign}${Math.round(diff)} Stk.`;
-
-      const colorClass = diff > 0 
-        ? 'text-emerald-400' 
-        : (diff < 0 ? 'text-rose-400' : 'text-slate-300');
-
+      const valFormatted = isPrice ? `${sign}${diff.toFixed(2)} €` : `${sign}${Math.round(diff)} Stk.`;
+      const colorClass = diff > 0 ? 'text-emerald-400' : (diff < 0 ? 'text-rose-400' : 'text-slate-300');
       return `<span class="${colorClass}">${pctFormatted}</span> <span class="text-xs text-slate-300 font-normal ml-0.5">(${valFormatted})</span>`;
     }
 
@@ -422,7 +990,6 @@
       const latest = allProductData[allProductData.length - 1];
       const pType = (latest.product_type || 'single').toLowerCase();
 
-      // Header über Graph
       document.getElementById('chartProductTitle').textContent = productName;
       const badge = document.getElementById('chartProductType');
       badge.textContent = pType === 'case' ? '📦 Case' : 'Single';
@@ -430,7 +997,6 @@
         ? 'text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-purple-950/80 border border-purple-700 text-purple-300'
         : 'text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-indigo-950/80 border border-indigo-700 text-indigo-300';
 
-      // Direktlink zu Cardmarket
       const confItem = configProducts.find(p => p.name === productName);
       const linkBtn = document.getElementById('chartCmLink');
       if (confItem && confItem.url) {
@@ -440,18 +1006,12 @@
         linkBtn.classList.add('hidden');
       }
 
-      // Kasten 1: Aktueller Preis & Bestand
       const currentPrice = latest.avg_robust_shipping;
       document.getElementById('statCurrentPrice').textContent = currentPrice ? `${currentPrice.toFixed(2)} €` : '-';
       document.getElementById('statCurrentAvail').textContent = latest.available_items != null ? `${latest.available_items} Stk.` : '-';
 
-      // Kasten 5: Preis Rekorde (ATL / ATH)
-      let priceATL = Infinity, priceATH = -Infinity;
-      let rowPriceATL = null, rowPriceATH = null;
-
-      // Kasten 5: Bestand Rekorde (ATL / ATH)
-      let availMin = Infinity, availMax = -Infinity;
-      let rowAvailMin = null, rowAvailMax = null;
+      let priceATL = Infinity, priceATH = -Infinity, rowPriceATL = null, rowPriceATH = null;
+      let availMin = Infinity, availMax = -Infinity, rowAvailMin = null, rowAvailMax = null;
 
       allProductData.forEach(r => {
         const p = r.avg_robust_shipping;
@@ -459,7 +1019,6 @@
           if (p < priceATL) { priceATL = p; rowPriceATL = r; }
           if (p > priceATH) { priceATH = p; rowPriceATH = r; }
         }
-
         const a = r.available_items;
         if (a != null) {
           if (a < availMin) { availMin = a; rowAvailMin = r; }
@@ -467,42 +1026,16 @@
         }
       });
 
-      if (rowPriceATL) {
-        document.getElementById('statPriceATL').innerHTML = `📉 ATL: ${priceATL.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowPriceATL.timestamp, true)})</span>`;
-      } else {
-        document.getElementById('statPriceATL').textContent = '-';
-      }
+      document.getElementById('statPriceATL').innerHTML = rowPriceATL ? `📉 ATL: ${priceATL.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowPriceATL.timestamp, true)})</span>` : '-';
+      document.getElementById('statPriceATH').innerHTML = rowPriceATH ? `📈 ATH: ${priceATH.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowPriceATH.timestamp, true)})</span>` : '-';
+      document.getElementById('statAvailMin').innerHTML = rowAvailMin ? `📉 ATL: ${availMin} Stk. <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowAvailMin.timestamp, true)})</span>` : '-';
+      document.getElementById('statAvailMax').innerHTML = rowAvailMax ? `📈 ATH: ${availMax} Stk. <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowAvailMax.timestamp, true)})</span>` : '-';
 
-      if (rowPriceATH) {
-        document.getElementById('statPriceATH').innerHTML = `📈 ATH: ${priceATH.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowPriceATH.timestamp, true)})</span>`;
-      } else {
-        document.getElementById('statPriceATH').textContent = '-';
-      }
-
-      if (rowAvailMin) {
-        document.getElementById('statAvailMin').innerHTML = `📉 ATL: ${availMin} Stk. <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowAvailMin.timestamp, true)})</span>`;
-      } else {
-        document.getElementById('statAvailMin').textContent = '-';
-      }
-
-      if (rowAvailMax) {
-        document.getElementById('statAvailMax').innerHTML = `📈 ATH: ${availMax} Stk. <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowAvailMax.timestamp, true)})</span>`;
-      } else {
-        document.getElementById('statAvailMax').textContent = '-';
-      }
-
-      // Rendite-Zeiträume (immer auf Gesamtdaten berechnet)
       const latestTime = new Date(latest.timestamp.replace(' ', 'T')).getTime();
-      const ms7d = 7 * 24 * 60 * 60 * 1000;
-      const ms30d = 30 * 24 * 60 * 60 * 1000;
-      const ms12m = 365 * 24 * 60 * 60 * 1000;
-
-      const row7d = (latestTime - new Date(allProductData[0].timestamp.replace(' ', 'T')).getTime() >= ms7d * 0.7) 
-        ? findClosestRecord(allProductData, latestTime - ms7d) : null;
-      const row30d = (latestTime - new Date(allProductData[0].timestamp.replace(' ', 'T')).getTime() >= ms30d * 0.7) 
-        ? findClosestRecord(allProductData, latestTime - ms30d) : null;
-      const row12m = (latestTime - new Date(allProductData[0].timestamp.replace(' ', 'T')).getTime() >= ms12m * 0.7) 
-        ? findClosestRecord(allProductData, latestTime - ms12m) : null;
+      const msDay = 24 * 60 * 60 * 1000;
+      const row7d = (latestTime - new Date(allProductData[0].timestamp.replace(' ', 'T')).getTime() >= 7 * msDay * 0.7) ? findClosestRecord(allProductData, latestTime - 7 * msDay) : null;
+      const row30d = (latestTime - new Date(allProductData[0].timestamp.replace(' ', 'T')).getTime() >= 30 * msDay * 0.7) ? findClosestRecord(allProductData, latestTime - 30 * msDay) : null;
+      const row12m = (latestTime - new Date(allProductData[0].timestamp.replace(' ', 'T')).getTime() >= 365 * msDay * 0.7) ? findClosestRecord(allProductData, latestTime - 365 * msDay) : null;
 
       document.getElementById('statPrice7d').innerHTML = row7d ? formatDelta(currentPrice, row7d.avg_robust_shipping, true) : '-';
       document.getElementById('statPrice30d').innerHTML = row30d ? formatDelta(currentPrice, row30d.avg_robust_shipping, true) : '-';
@@ -513,31 +1046,22 @@
       document.getElementById('statAvail30d').innerHTML = row30d ? formatDelta(currentAvail, row30d.available_items, false) : '-';
       document.getElementById('statAvail12m').innerHTML = row12m ? formatDelta(currentAvail, row12m.available_items, false) : '-';
 
-      // Graph rendern mit gefiltertem Zeitraum
       const chartFilteredData = filterDataByTimeRange(allProductData, currentTimeRange);
       renderChart(chartFilteredData, pType);
     }
 
     function getPointStyling(values) {
-      let minVal = Infinity, maxVal = -Infinity;
-      let minIdx = -1, maxIdx = -1;
-
+      let minVal = Infinity, maxVal = -Infinity, minIdx = -1, maxIdx = -1;
       values.forEach((v, idx) => {
         if (v != null) {
           if (v < minVal) { minVal = v; minIdx = idx; }
           if (v > maxVal) { maxVal = v; maxIdx = idx; }
         }
       });
-
       const radii = values.map((_, idx) => (idx === minIdx || idx === maxIdx) ? 6 : 1.5);
       const hoverRadii = values.map((_, idx) => (idx === minIdx || idx === maxIdx) ? 8 : 5);
-      const borderColors = values.map((_, idx) => {
-        if (idx === minIdx) return '#f43f5e';
-        if (idx === maxIdx) return '#10b981';
-        return '#ffffff';
-      });
+      const borderColors = values.map((_, idx) => idx === minIdx ? '#f43f5e' : (idx === maxIdx ? '#10b981' : '#ffffff'));
       const borderWidths = values.map((_, idx) => (idx === minIdx || idx === maxIdx) ? 2.5 : 0);
-
       return { radii, hoverRadii, borderColors, borderWidths };
     }
 
@@ -553,18 +1077,10 @@
       }
 
       const formulaExplanations = {
-        'Robust (inkl. Versand)': pType === 'case'
-          ? '<b>Ø Robust (inkl. Versand):</b> Mittelwert der Top 2 bis 5 günstigsten Gesamtpreise.'
-          : '<b>Ø Robust (inkl. Versand):</b> Mittelwert der Top 3 bis 10 günstigsten Gesamtpreise.',
-        'Markt (inkl. Versand)': pType === 'case'
-          ? '<b>Ø Markt (inkl. Versand):</b> Mittelwert der Top 10 günstigsten Gesamtpreise.'
-          : '<b>Ø Markt (inkl. Versand):</b> Mittelwert der Top 15 günstigsten Gesamtpreise.',
-        'Robust (ohne Versand)': pType === 'case'
-          ? '<b>Ø Robust (ohne Versand):</b> Mittelwert der reinen Artikelpreise auf Rang 2 bis 5.'
-          : '<b>Ø Robust (ohne Versand):</b> Mittelwert der reinen Artikelpreise auf Rang 3 bis 10.',
-        'Markt (ohne Versand)': pType === 'case'
-          ? '<b>Ø Markt (ohne Versand):</b> Mittelwert der Top 10 reinen Artikelpreise.'
-          : '<b>Ø Markt (ohne Versand):</b> Mittelwert der Top 15 reinen Artikelpreise.',
+        'Robust (inkl. Versand)': pType === 'case' ? '<b>Ø Robust (inkl. Versand):</b> Mittelwert der Top 2 bis 5 günstigsten Gesamtpreise.' : '<b>Ø Robust (inkl. Versand):</b> Mittelwert der Top 3 bis 10 günstigsten Gesamtpreise.',
+        'Markt (inkl. Versand)': pType === 'case' ? '<b>Ø Markt (inkl. Versand):</b> Mittelwert der Top 10 günstigsten Gesamtpreise.' : '<b>Ø Markt (inkl. Versand):</b> Mittelwert der Top 15 günstigsten Gesamtpreise.',
+        'Robust (ohne Versand)': pType === 'case' ? '<b>Ø Robust (ohne Versand):</b> Mittelwert der reinen Artikelpreise auf Rang 2 bis 5.' : '<b>Ø Robust (ohne Versand):</b> Mittelwert der reinen Artikelpreise auf Rang 3 bis 10.',
+        'Markt (ohne Versand)': pType === 'case' ? '<b>Ø Markt (ohne Versand):</b> Mittelwert der Top 10 reinen Artikelpreise.' : '<b>Ø Markt (ohne Versand):</b> Mittelwert der Top 15 reinen Artikelpreise.',
         'Verfügbare Menge': '<b>Verfügbare Artikel:</b> Gesamtzahl aller aktuell gelisteten Exemplare.'
       };
 
@@ -581,78 +1097,11 @@
       const styleAvail = getPointStyling(availData);
 
       const datasets = [
-        {
-          label: 'Robust (inkl. Versand)',
-          data: pRobustShipData,
-          borderColor: '#818cf8',
-          backgroundColor: '#818cf8',
-          yAxisID: 'yPrices',
-          tension: 0.3,
-          borderWidth: 3,
-          pointRadius: styleRobustShip.radii,
-          pointHoverRadius: styleRobustShip.hoverRadii,
-          pointBorderColor: styleRobustShip.borderColors,
-          pointBorderWidth: styleRobustShip.borderWidths,
-          hidden: datasetVisibilityState['Robust (inkl. Versand)'] || false
-        },
-        {
-          label: 'Markt (inkl. Versand)',
-          data: pMarketShipData,
-          borderColor: '#c084fc',
-          backgroundColor: '#c084fc',
-          yAxisID: 'yPrices',
-          tension: 0.3,
-          borderWidth: 3,
-          pointRadius: styleMarketShip.radii,
-          pointHoverRadius: styleMarketShip.hoverRadii,
-          pointBorderColor: styleMarketShip.borderColors,
-          pointBorderWidth: styleMarketShip.borderWidths,
-          hidden: datasetVisibilityState['Markt (inkl. Versand)'] || false
-        },
-        {
-          label: 'Robust (ohne Versand)',
-          data: pRobustData,
-          borderColor: '#64748b',
-          backgroundColor: '#64748b',
-          borderDash: [5, 5],
-          yAxisID: 'yPrices',
-          tension: 0.3,
-          borderWidth: 2,
-          pointRadius: styleRobust.radii,
-          pointHoverRadius: styleRobust.hoverRadii,
-          pointBorderColor: styleRobust.borderColors,
-          pointBorderWidth: styleRobust.borderWidths,
-          hidden: datasetVisibilityState['Robust (ohne Versand)'] || false
-        },
-        {
-          label: 'Markt (ohne Versand)',
-          data: pMarketData,
-          borderColor: '#94a3b8',
-          backgroundColor: '#94a3b8',
-          borderDash: [5, 5],
-          yAxisID: 'yPrices',
-          tension: 0.3,
-          borderWidth: 2,
-          pointRadius: styleMarket.radii,
-          pointHoverRadius: styleMarket.hoverRadii,
-          pointBorderColor: styleMarket.borderColors,
-          pointBorderWidth: styleMarket.borderWidths,
-          hidden: datasetVisibilityState['Markt (ohne Versand)'] || false
-        },
-        {
-          label: 'Verfügbare Menge',
-          data: availData,
-          borderColor: '#f59e0b',
-          backgroundColor: '#f59e0b',
-          yAxisID: 'yQuantity',
-          tension: 0.2,
-          borderWidth: 3,
-          pointRadius: styleAvail.radii,
-          pointHoverRadius: styleAvail.hoverRadii,
-          pointBorderColor: styleAvail.borderColors,
-          pointBorderWidth: styleAvail.borderWidths,
-          hidden: datasetVisibilityState['Verfügbare Menge'] || false
-        }
+        { label: 'Robust (inkl. Versand)', data: pRobustShipData, borderColor: '#818cf8', backgroundColor: '#818cf8', yAxisID: 'yPrices', tension: 0.3, borderWidth: 3, pointRadius: styleRobustShip.radii, pointHoverRadius: styleRobustShip.hoverRadii, pointBorderColor: styleRobustShip.borderColors, pointBorderWidth: styleRobustShip.borderWidths, hidden: datasetVisibilityState['Robust (inkl. Versand)'] || false },
+        { label: 'Markt (inkl. Versand)', data: pMarketShipData, borderColor: '#c084fc', backgroundColor: '#c084fc', yAxisID: 'yPrices', tension: 0.3, borderWidth: 3, pointRadius: styleMarketShip.radii, pointHoverRadius: styleMarketShip.hoverRadii, pointBorderColor: styleMarketShip.borderColors, pointBorderWidth: styleMarketShip.borderWidths, hidden: datasetVisibilityState['Markt (inkl. Versand)'] || false },
+        { label: 'Robust (ohne Versand)', data: pRobustData, borderColor: '#64748b', backgroundColor: '#64748b', borderDash: [5, 5], yAxisID: 'yPrices', tension: 0.3, borderWidth: 2, pointRadius: styleRobust.radii, pointHoverRadius: styleRobust.hoverRadii, pointBorderColor: styleRobust.borderColors, pointBorderWidth: styleRobust.borderWidths, hidden: datasetVisibilityState['Robust (ohne Versand)'] || false },
+        { label: 'Markt (ohne Versand)', data: pMarketData, borderColor: '#94a3b8', backgroundColor: '#94a3b8', borderDash: [5, 5], yAxisID: 'yPrices', tension: 0.3, borderWidth: 2, pointRadius: styleMarket.radii, pointHoverRadius: styleMarket.hoverRadii, pointBorderColor: styleMarket.borderColors, pointBorderWidth: styleMarket.borderWidths, hidden: datasetVisibilityState['Markt (ohne Versand)'] || false },
+        { label: 'Verfügbare Menge', data: availData, borderColor: '#f59e0b', backgroundColor: '#f59e0b', yAxisID: 'yQuantity', tension: 0.2, borderWidth: 3, pointRadius: styleAvail.radii, pointHoverRadius: styleAvail.hoverRadii, pointBorderColor: styleAvail.borderColors, pointBorderWidth: styleAvail.borderWidths, hidden: datasetVisibilityState['Verfügbare Menge'] || false }
       ];
 
       const tooltipBox = document.getElementById('legendTooltip');
@@ -663,20 +1112,12 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          interaction: {
-            mode: 'index',
-            intersect: false
-          },
+          interaction: { mode: 'index', intersect: false },
           plugins: {
             legend: {
               position: 'top',
-              labels: {
-                color: '#cbd5e1',
-                boxWidth: 12,
-                padding: 16,
-                font: { size: 12, weight: '500' }
-              },
-              onHover: function(e, legendItem, legend) {
+              labels: { color: '#cbd5e1', boxWidth: 12, padding: 16, font: { size: 12, weight: '500' } },
+              onHover: function(e, legendItem) {
                 const text = formulaExplanations[legendItem.text];
                 if (text && tooltipBox) {
                   tooltipBox.innerHTML = text;
@@ -685,21 +1126,13 @@
                   tooltipBox.style.top = `${Math.max(10, e.native.layerY + 60)}px`;
                 }
               },
-              onLeave: function() {
-                if (tooltipBox) tooltipBox.classList.add('hidden');
-              },
+              onLeave: () => tooltipBox && tooltipBox.classList.add('hidden'),
               onClick: function(e, legendItem, legend) {
                 const index = legendItem.datasetIndex;
                 const ci = legend.chart;
-                if (ci.isDatasetVisible(index)) {
-                  ci.hide(index);
-                  legendItem.hidden = true;
-                } else {
-                  ci.show(index);
-                  legendItem.hidden = false;
-                }
-                const label = ci.data.datasets[index].label;
-                datasetVisibilityState[label] = !ci.isDatasetVisible(index);
+                if (ci.isDatasetVisible(index)) { ci.hide(index); legendItem.hidden = true; }
+                else { ci.show(index); legendItem.hidden = false; }
+                datasetVisibilityState[ci.data.datasets[index].label] = !ci.isDatasetVisible(index);
               }
             },
             tooltip: {
@@ -710,23 +1143,18 @@
               borderWidth: 1,
               padding: 12,
               callbacks: {
-                title: function(tooltipItems) {
-                  const idx = tooltipItems[0].dataIndex;
-                  const row = data[idx];
-                  const [datePart, timePart] = row.timestamp.split(' ');
+                title: function(items) {
+                  const idx = items[0].dataIndex;
+                  const [datePart, timePart] = data[idx].timestamp.split(' ');
                   return `📅 ${formatDateGerman(datePart, false)} (${timePart.substring(0, 5)} Uhr)`;
                 },
                 label: function(context) {
                   const label = context.dataset.label || '';
                   const val = context.parsed.y;
-                  if (context.dataset.yAxisID === 'yQuantity') {
-                    return `${label}: ${val} Stk.`;
-                  }
-                  return `${label}: ${val != null ? val.toFixed(2) : '-'} €`;
+                  return context.dataset.yAxisID === 'yQuantity' ? `${label}: ${val} Stk.` : `${label}: ${val != null ? val.toFixed(2) : '-'} €`;
                 },
                 afterBody: function(tooltipItems) {
-                  const index = tooltipItems[0].dataIndex;
-                  const row = data[index];
+                  const row = data[tooltipItems[0].dataIndex];
                   return [
                     '',
                     '📦 3 Günstigste Gesamtpreise:',
@@ -739,41 +1167,20 @@
             }
           },
           scales: {
-            x: {
-              grid: { color: '#1e293b' },
-              ticks: { 
-                color: '#94a3b8',
-                maxTicksLimit: 10,
-                maxRotation: 0
-              }
-            },
+            x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', maxTicksLimit: 10 } },
             yPrices: {
               type: 'linear',
               position: 'left',
               grid: { color: '#1e293b' },
-              ticks: {
-                color: '#818cf8',
-                callback: value => value + ' €'
-              },
-              title: {
-                display: true,
-                text: 'Preise (€)',
-                color: '#818cf8'
-              }
+              ticks: { color: '#818cf8', callback: val => val + ' €' },
+              title: { display: true, text: 'Preise (€)', color: '#818cf8' }
             },
             yQuantity: {
               type: 'linear',
               position: 'right',
               grid: { drawOnChartArea: false },
-              ticks: {
-                color: '#f59e0b',
-                precision: 0
-              },
-              title: {
-                display: true,
-                text: 'Bestand (Stück)',
-                color: '#f59e0b'
-              }
+              ticks: { color: '#f59e0b', precision: 0 },
+              title: { display: true, text: 'Bestand (Stück)', color: '#f59e0b' }
             }
           }
         }
@@ -782,8 +1189,7 @@
 
     function openModal() {
       document.getElementById('addModal').classList.remove('hidden');
-      const savedToken = localStorage.getItem('gh_pat') || '';
-      document.getElementById('modalToken').value = savedToken;
+      document.getElementById('modalToken').value = localStorage.getItem('gh_pat') || '';
       document.getElementById('modalStatus').className = 'text-xs hidden p-2.5 rounded-lg';
     }
 
@@ -795,19 +1201,17 @@
       event.preventDefault();
       const statusBox = document.getElementById('modalStatus');
       const btn = document.getElementById('submitBtn');
-
       const name = document.getElementById('modalName').value.trim();
       const url = document.getElementById('modalUrl').value.trim();
       const type = document.getElementById('modalType').value;
       const token = document.getElementById('modalToken').value.trim();
 
       if (!token) {
-        showStatus('Bitte trage deinen GitHub Personal Access Token ein.', 'error');
+        showStatus('Bitte trage deinen GitHub Token ein.', 'error');
         return;
       }
-
       if (!url.startsWith('https://www.cardmarket.com/')) {
-        showStatus('Bitte gib eine gültige Cardmarket URL ein (beginnend mit https://www.cardmarket.com/).', 'error');
+        showStatus('Bitte gültige Cardmarket URL angeben.', 'error');
         return;
       }
 
@@ -818,58 +1222,29 @@
       try {
         const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${CONFIG_FILE}`;
         const getRes = await fetch(apiUrl, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/vnd.github.v3+json'
-          }
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' }
         });
-
-        if (!getRes.ok) throw new Error('Konnte config.json nicht laden. Prüfe den GitHub Token & Reponamen.');
+        if (!getRes.ok) throw new Error('Konnte config.json nicht laden.');
 
         const fileData = await getRes.json();
         const jsonString = b64_to_utf8(fileData.content.replace(/\s/g, ''));
         const currentContent = JSON.parse(jsonString);
 
-        if (!currentContent.products || !Array.isArray(currentContent.products)) {
-          currentContent.products = [];
-        }
+        if (!currentContent.products || !Array.isArray(currentContent.products)) currentContent.products = [];
+        if (currentContent.products.some(p => p.url === url)) throw new Error('Link wird bereits getrackt!');
 
-        if (currentContent.products.some(p => p.url === url)) {
-          throw new Error('Dieser Cardmarket-Link wird bereits getrackt!');
-        }
-
-        const newProduct = {
-          name: name,
-          url: url,
-          type: type
-        };
-
-        currentContent.products.push(newProduct);
-
-        const updatedJsonStr = JSON.stringify(currentContent, null, 2);
-        const updatedBase64 = utf8_to_b64(updatedJsonStr);
-
+        currentContent.products.push({ name, url, type });
         const putRes = await fetch(apiUrl, {
           method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/vnd.github.v3+json'
-          },
-          body: JSON.stringify({
-            message: `Add ${name} via Web Dashboard`,
-            content: updatedBase64,
-            sha: fileData.sha
-          })
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
+          body: JSON.stringify({ message: `Add ${name}`, content: utf8_to_b64(JSON.stringify(currentContent, null, 2)), sha: fileData.sha })
         });
-
         if (!putRes.ok) throw new Error('Fehler beim Speichern in GitHub.');
 
-        showStatus('✅ Erfolgreich hinzugefügt! Das Produkt wird beim nächsten Scrape erfasst.', 'success');
+        showStatus('✅ Erfolgreich hinzugefügt!', 'success');
         document.getElementById('modalName').value = '';
         document.getElementById('modalUrl').value = '';
         setTimeout(() => closeModal(), 2000);
-
       } catch (err) {
         showStatus(`⚠️ ${err.message}`, 'error');
       } finally {
@@ -882,8 +1257,16 @@
       const box = document.getElementById('modalStatus');
       box.textContent = text;
       box.className = type === 'success' 
-        ? 'text-xs p-2.5 rounded-lg bg-emerald-950/80 text-emerald-300 border border-emerald-800' 
-        : 'text-xs p-2.5 rounded-lg bg-rose-950/80 text-rose-300 border border-rose-800';
+        ? 'text-xs p-2.5 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-800' 
+        : 'text-xs p-2.5 rounded-lg bg-rose-950 text-rose-300 border border-rose-800';
+    }
+
+    function utf8_to_b64(str) {
+      return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode('0x' + p1)));
+    }
+
+    function b64_to_utf8(str) {
+      return decodeURIComponent(Array.prototype.map.call(atob(str), (c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
     }
 
     window.addEventListener('DOMContentLoaded', loadData);
