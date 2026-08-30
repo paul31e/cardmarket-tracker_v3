@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TCG Cardmarket Price Tracker</title>
   
-  <!-- Tailwind CSS & Chart.js -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -25,7 +24,6 @@
 
       <div class="flex flex-wrap items-center gap-3">
         <select id="productSelect" class="bg-slate-800 border border-slate-700 text-white text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-2.5 outline-none min-w-[240px]">
-          <!-- Optionen dynamisch via JS -->
         </select>
         
         <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-md">
@@ -96,7 +94,7 @@
         <div class="pt-2 border-t border-slate-800">
           <label class="block text-xs font-medium text-slate-400 mb-1">GitHub Personal Access Token (PAT)</label>
           <input type="password" id="modalToken" placeholder="ghp_xxxxxxxxxxxx" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
-          <p class="text-[11px] text-slate-500 mt-1">Wird nur in deinem Browser gespeichert, um die config.json im Repo zu aktualisieren.</p>
+          <p class="text-[11px] text-slate-500 mt-1">Wird nur lokal in deinem Browser gespeichert, um die config.json zu aktualisieren.</p>
         </div>
 
         <div id="modalStatus" class="text-xs hidden p-2.5 rounded-lg"></div>
@@ -316,7 +314,6 @@
       });
     }
 
-    // Modal Funktionen
     function openModal() {
       document.getElementById('addModal').classList.remove('hidden');
       const savedToken = localStorage.getItem('gh_pat') || '';
@@ -328,7 +325,6 @@
       document.getElementById('addModal').classList.add('hidden');
     }
 
-    // GitHub API Integration
     async function handleAddProduct(event) {
       event.preventDefault();
       const statusBox = document.getElementById('modalStatus');
@@ -349,7 +345,6 @@
       btn.textContent = 'Speichere...';
 
       try {
-        // 1. Aktuelle config.json via GitHub API abrufen
         const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${CONFIG_FILE}`;
         const getRes = await fetch(apiUrl, {
           headers: {
@@ -363,22 +358,18 @@
         const fileData = await getRes.json();
         const currentContent = JSON.parse(decodeURIComponent(escape(atob(fileData.content))));
 
-        // 2. Neues Produkt anfügen
         const newProduct = {
           name: name,
-          type: type,
           url: url,
-          target_price: 0
+          type: type
         };
 
-        // Prüfen, ob URL oder Name schon existiert
         if (currentContent.products.some(p => p.url === url)) {
           throw new Error('Dieser Cardmarket-Link wird bereits getrackt!');
         }
 
         currentContent.products.push(newProduct);
 
-        // 3. Neue config.json committen
         const updatedJsonStr = JSON.stringify(currentContent, null, 2);
         const updatedBase64 = btoa(unescape(encodeURIComponent(updatedJsonStr)));
 
