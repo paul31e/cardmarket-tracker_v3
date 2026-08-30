@@ -33,66 +33,62 @@
       </div>
     </header>
 
-    <!-- KPI Metric Cards: Preis & Renditen (5er Grid) -->
+    <!-- KPI Metric Cards: Preis & Renditen -->
     <div>
       <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Preisentwicklung (Ø Robust inkl. Versand)</h2>
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
-          <span class="text-xs text-slate-400 font-medium">Aktueller Preis Ø</span>
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
+          <span class="text-xs text-slate-400 font-medium">Aktueller Preis inkl. Versand</span>
           <div class="text-lg font-bold text-indigo-400 mt-1" id="statCurrentPrice">-</div>
-          <span class="text-[11px] text-slate-500">inkl. Versand</span>
         </div>
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
           <span class="text-xs text-slate-400 font-medium">7-Tage Rendite</span>
           <div class="text-base font-bold text-slate-200 mt-1" id="statPrice7d">-</div>
-          <span class="text-[11px] text-slate-500">Trend 1 Woche</span>
         </div>
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
           <span class="text-xs text-slate-400 font-medium">30-Tage Rendite</span>
           <div class="text-base font-bold text-slate-200 mt-1" id="statPrice30d">-</div>
-          <span class="text-[11px] text-slate-500">Trend 1 Monat</span>
         </div>
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
           <span class="text-xs text-slate-400 font-medium">12-Monate Rendite</span>
           <div class="text-base font-bold text-slate-200 mt-1" id="statPrice12m">-</div>
-          <span class="text-[11px] text-slate-500">Trend 1 Jahr</span>
         </div>
         <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
-          <span class="text-xs text-slate-400 font-medium">Rekorde (ATL / ATH)</span>
-          <div class="text-[12px] font-semibold text-emerald-400 mt-1" id="statPriceATL">-</div>
-          <div class="text-[12px] font-semibold text-rose-400" id="statPriceATH">-</div>
+          <div class="space-y-0.5">
+            <div class="text-[12px] font-semibold text-rose-400" id="statPriceATL">-</div>
+            <div class="text-[12px] font-semibold text-emerald-400" id="statPriceATH">-</div>
+          </div>
+          <span class="text-[10px] text-slate-500 mt-1">seit Trackingbeginn</span>
         </div>
       </div>
     </div>
 
-    <!-- KPI Metric Cards: Bestands-Dynamik (5er Grid) -->
+    <!-- KPI Metric Cards: Bestands-Dynamik -->
     <div>
       <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Verfügbarkeits-Dynamik (Bestandsänderung)</h2>
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
           <span class="text-xs text-slate-400 font-medium">Aktueller Bestand</span>
           <div class="text-lg font-bold text-amber-400 mt-1" id="statCurrentAvail">-</div>
-          <span class="text-[11px] text-slate-500">am Markt gelistet</span>
         </div>
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
           <span class="text-xs text-slate-400 font-medium">Bestand Δ (7 Tage)</span>
           <div class="text-base font-bold text-slate-200 mt-1" id="statAvail7d">-</div>
-          <span class="text-[11px] text-slate-500">Netto-Veränderung</span>
         </div>
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
           <span class="text-xs text-slate-400 font-medium">Bestand Δ (30 Tage)</span>
           <div class="text-base font-bold text-slate-200 mt-1" id="statAvail30d">-</div>
-          <span class="text-[11px] text-slate-500">Netto-Veränderung</span>
         </div>
-        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-center">
           <span class="text-xs text-slate-400 font-medium">Bestand Δ (12 Monate)</span>
           <div class="text-base font-bold text-slate-200 mt-1" id="statAvail12m">-</div>
-          <span class="text-[11px] text-slate-500">Netto-Veränderung</span>
         </div>
         <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
-          <span class="text-xs text-slate-400 font-medium">Bestand Min / Max</span>
-          <div class="text-[12px] font-semibold text-rose-400 mt-1" id="statAvailMin">-</div>
-          <div class="text-[12px] font-semibold text-emerald-400" id="statAvailMax">-</div>
+          <div class="space-y-0.5">
+            <div class="text-[12px] font-semibold text-rose-400" id="statAvailMin">-</div>
+            <div class="text-[12px] font-semibold text-emerald-400" id="statAvailMax">-</div>
+          </div>
+          <span class="text-[10px] text-slate-500 mt-1">seit Trackingbeginn</span>
         </div>
       </div>
     </div>
@@ -326,7 +322,7 @@
       let priceATL = Infinity, priceATH = -Infinity;
       let rowPriceATL = null, rowPriceATH = null;
 
-      // Kasten 5: Bestand Rekorde (Min / Max)
+      // Kasten 5: Bestand Rekorde (ATL / ATH)
       let availMin = Infinity, availMax = -Infinity;
       let rowAvailMin = null, rowAvailMax = null;
 
@@ -345,25 +341,25 @@
       });
 
       if (rowPriceATL) {
-        document.getElementById('statPriceATL').innerHTML = `📉 ATL: ${priceATL.toFixed(2)} € <span class="text-[10px] text-slate-500 font-normal">(${rowPriceATL.timestamp.substring(2, 10)})</span>`;
+        document.getElementById('statPriceATL').innerHTML = `📉 ATL: ${priceATL.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${rowPriceATL.timestamp.substring(2, 10)})</span>`;
       } else {
         document.getElementById('statPriceATL').textContent = '-';
       }
 
       if (rowPriceATH) {
-        document.getElementById('statPriceATH').innerHTML = `📈 ATH: ${priceATH.toFixed(2)} € <span class="text-[10px] text-slate-500 font-normal">(${rowPriceATH.timestamp.substring(2, 10)})</span>`;
+        document.getElementById('statPriceATH').innerHTML = `📈 ATH: ${priceATH.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${rowPriceATH.timestamp.substring(2, 10)})</span>`;
       } else {
         document.getElementById('statPriceATH').textContent = '-';
       }
 
       if (rowAvailMin) {
-        document.getElementById('statAvailMin').innerHTML = `🔻 Min: ${availMin} Stk. <span class="text-[10px] text-slate-500 font-normal">(${rowAvailMin.timestamp.substring(2, 10)})</span>`;
+        document.getElementById('statAvailMin').innerHTML = `📉 ATL: ${availMin} Stk. <span class="text-[11px] text-slate-300 font-medium">(${rowAvailMin.timestamp.substring(2, 10)})</span>`;
       } else {
         document.getElementById('statAvailMin').textContent = '-';
       }
 
       if (rowAvailMax) {
-        document.getElementById('statAvailMax').innerHTML = `🔺 Max: ${availMax} Stk. <span class="text-[10px] text-slate-500 font-normal">(${rowAvailMax.timestamp.substring(2, 10)})</span>`;
+        document.getElementById('statAvailMax').innerHTML = `📈 ATH: ${availMax} Stk. <span class="text-[11px] text-slate-300 font-medium">(${rowAvailMax.timestamp.substring(2, 10)})</span>`;
       } else {
         document.getElementById('statAvailMax').textContent = '-';
       }
@@ -393,8 +389,7 @@
       renderChart(filtered, pType);
     }
 
-    // Hilfsfunktion: Ermittelt Highlight-Radien und Farben für ATL/ATH-Punkte
-    function getPointStyling(values, isMinBest = true) {
+    function getPointStyling(values) {
       let minVal = Infinity, maxVal = -Infinity;
       let minIdx = -1, maxIdx = -1;
 
@@ -408,8 +403,8 @@
       const radii = values.map((_, idx) => (idx === minIdx || idx === maxIdx) ? 6 : 1.5);
       const hoverRadii = values.map((_, idx) => (idx === minIdx || idx === maxIdx) ? 8 : 5);
       const borderColors = values.map((_, idx) => {
-        if (idx === minIdx) return '#10b981'; // Grün für Min / ATL
-        if (idx === maxIdx) return '#f43f5e'; // Rot für Max / ATH
+        if (idx === minIdx) return '#f43f5e'; // Rot für ATL
+        if (idx === maxIdx) return '#10b981'; // Grün für ATH
         return '#ffffff';
       });
       const borderWidths = values.map((_, idx) => (idx === minIdx || idx === maxIdx) ? 2.5 : 0);
