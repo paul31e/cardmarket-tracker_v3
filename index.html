@@ -54,11 +54,11 @@
           <div class="text-base font-bold text-slate-200 mt-1" id="statPrice12m">-</div>
         </div>
         <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
-          <div class="space-y-0.5">
-            <div class="text-[12px] font-semibold text-rose-400" id="statPriceATL">-</div>
-            <div class="text-[12px] font-semibold text-emerald-400" id="statPriceATH">-</div>
+          <div class="space-y-1">
+            <div class="text-[14px] font-bold text-rose-400 leading-tight" id="statPriceATL">-</div>
+            <div class="text-[14px] font-bold text-emerald-400 leading-tight" id="statPriceATH">-</div>
           </div>
-          <span class="text-[10px] text-slate-500 mt-1">seit Trackingbeginn</span>
+          <span class="text-[9px] text-slate-500/80 tracking-wide uppercase mt-1.5">seit Trackingbeginn</span>
         </div>
       </div>
     </div>
@@ -84,11 +84,11 @@
           <div class="text-base font-bold text-slate-200 mt-1" id="statAvail12m">-</div>
         </div>
         <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between">
-          <div class="space-y-0.5">
-            <div class="text-[12px] font-semibold text-rose-400" id="statAvailMin">-</div>
-            <div class="text-[12px] font-semibold text-emerald-400" id="statAvailMax">-</div>
+          <div class="space-y-1">
+            <div class="text-[14px] font-bold text-rose-400 leading-tight" id="statAvailMin">-</div>
+            <div class="text-[14px] font-bold text-emerald-400 leading-tight" id="statAvailMax">-</div>
           </div>
-          <span class="text-[10px] text-slate-500 mt-1">seit Trackingbeginn</span>
+          <span class="text-[9px] text-slate-500/80 tracking-wide uppercase mt-1.5">seit Trackingbeginn</span>
         </div>
       </div>
     </div>
@@ -403,8 +403,8 @@
       const radii = values.map((_, idx) => (idx === minIdx || idx === maxIdx) ? 6 : 1.5);
       const hoverRadii = values.map((_, idx) => (idx === minIdx || idx === maxIdx) ? 8 : 5);
       const borderColors = values.map((_, idx) => {
-        if (idx === minIdx) return '#f43f5e'; // Rot für ATL
-        if (idx === maxIdx) return '#10b981'; // Grün für ATH
+        if (idx === minIdx) return '#f43f5e';
+        if (idx === maxIdx) return '#10b981';
         return '#ffffff';
       });
       const borderWidths = values.map((_, idx) => (idx === minIdx || idx === maxIdx) ? 2.5 : 0);
