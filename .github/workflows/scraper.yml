@@ -2,40 +2,11 @@ name: TCG Price Scraper
 
 on:
   schedule:
-    # Triggert um 4, 5, 10, 11, 16, 17, 22, 23 Uhr UTC (deckt Sommer- und Winterzeit ab)
-    - cron: '0 4,5,10,11,16,17,22,23 * * *'
+    - cron: '0 6,18 * * *'
   workflow_dispatch:
 
 jobs:
-  check-time:
-    runs-on: ubuntu-latest
-    outputs:
-      should_run: ${{ steps.check.outputs.should_run }}
-    steps:
-      - name: Prüfe deutsche Uhrzeit (Sommer- & Winterzeit)
-        id: check
-        run: |
-          # Wenn manuell getriggert (workflow_dispatch), immer ausführen
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "should_run=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Aktuelle Stunde in der Zeitzone Europe/Berlin holen
-          HOUR=$(TZ="Europe/Berlin" date +"%H")
-          echo "Aktuelle Stunde in Berlin: $HOUR Uhr"
-
-          # Nur um 00, 06, 12, 18 Uhr deutscher Zeit laufen lassen
-          if [ "$HOUR" = "00" ] || [ "$HOUR" = "06" ] || [ "$HOUR" = "12" ] || [ "$HOUR" = "18" ]; then
-            echo "should_run=true" >> $GITHUB_OUTPUT
-          else
-            echo "Kein Zielzeitpunkt. Überspringe Scrape."
-            echo "should_run=false" >> $GITHUB_OUTPUT
-          fi
-
   scrape:
-    needs: check-time
-    if: needs.check-time.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     
     services:
@@ -71,8 +42,6 @@ jobs:
 
       - name: Run Scraper
         env:
-          BOTFATHER: ${{ secrets.BOTFATHER }}
-          TELEGRAMCHATID: ${{ secrets.TELEGRAMCHATID }}
           CM_USERNAME: ${{ secrets.CM_USERNAME }}
           CM_PASSWORD: ${{ secrets.CM_PASSWORD }}
         run: python scraper.py
@@ -81,5 +50,5 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update price data [skip ci]" && git push)
+          git add data/data.csv
+          git diff --staged --quiet || (git commit -m "Update price data [skip ci]" && git push)
