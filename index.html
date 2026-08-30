@@ -270,7 +270,8 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
           <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col justify-center">
             <span class="text-[11px] text-slate-400 font-medium">Portfolio-Gesamtwert</span>
-            <div class="text-base md:text-lg font-bold text-indigo-400 mt-0.5" id="portStatTotalValue">0.00 €</div>
+            <!-- Jetzt in leuchtendem Smaragdgrün -->
+            <div class="text-base md:text-lg font-bold text-emerald-400 mt-0.5" id="portStatTotalValue">0.00 €</div>
             <span class="text-[9.5px] text-slate-500">exklusive Versandkosten</span>
           </div>
           <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col justify-center">
@@ -323,9 +324,10 @@
           </div>
 
           <div class="flex flex-wrap items-center gap-2.5">
-            <div class="bg-slate-950 px-3 py-1 rounded-xl border border-slate-800 flex items-center gap-1.5">
-              <span class="text-xs text-slate-400 font-medium">Aktueller Wert:</span>
-              <span class="text-xs md:text-sm font-bold text-emerald-400" id="portChartCurValBadge">0.00 €</span>
+            <!-- Größerer Gesamtwert-Badge (Live bei Hover) -->
+            <div class="bg-slate-950 px-3.5 py-1.5 rounded-xl border border-slate-800 flex items-center gap-2 shadow-inner">
+              <span class="text-xs text-slate-400 font-medium" id="portChartBadgeLabel">Gesamtwert:</span>
+              <span class="text-base md:text-lg font-extrabold text-emerald-400" id="portChartCurValBadge">0.00 €</span>
             </div>
 
             <div class="inline-flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold" id="portTimeFilterButtons">
@@ -438,6 +440,7 @@
     let currentSelectedProduct = "";
     let currentTimeRange = "all";
     let portCurrentTimeRange = "all";
+    let portLatestTotalValue = 0; // Merkt sich den aktuellen Gesamtwert
 
     let currentSortColumn = "name";
     let currentSortDirection = "asc";
@@ -826,6 +829,8 @@
         }
       });
 
+      portLatestTotalValue = totalCurrentValue;
+
       const roiDiff = totalCurrentValue - totalInvested;
       const roiPct = totalInvested > 0 ? (roiDiff / totalInvested) * 100 : 0;
       const roiSign = roiDiff >= 0 ? '+' : '';
@@ -1016,28 +1021,51 @@
           responsive: true,
           maintainAspectRatio: false,
           interaction: { mode: 'index', intersect: false },
+          onHover: (e, activeElements) => {
+            const badge = document.getElementById('portChartCurValBadge');
+            if (activeElements && activeElements.length > 0) {
+              const idx = activeElements[0].index;
+              const item = data[idx];
+              if (item && badge) {
+                badge.textContent = `${item.total_value.toFixed(2)} €`;
+              }
+            } else {
+              if (badge) badge.textContent = `${portLatestTotalValue.toFixed(2)} €`;
+            }
+          },
           plugins: {
             legend: { display: false },
             tooltip: {
               backgroundColor: '#020617',
               borderColor: '#334155',
-              borderWidth: 1,
-              padding: 12,
+              borderWidth: 1.5,
+              padding: 14,
+              cornerRadius: 12,
+              titleFont: { size: 14, weight: 'bold' },
+              titleColor: '#f8fafc',
+              bodyFont: { size: 13 },
+              bodySpacing: 6,
               callbacks: {
                 title: function(items) {
                   const idx = items[0].dataIndex;
-                  return `📅 ${formatDateGerman(data[idx].timestamp, false)}`;
+                  return `📅 Datum: ${formatDateGerman(data[idx].timestamp, false)}`;
                 },
                 label: function(context) {
                   const item = data[context.dataIndex];
                   const sign = item.roi_pct >= 0 ? '+' : '';
                   const diff = item.total_value - item.invested;
                   const diffSign = diff >= 0 ? '+' : '';
+                  const roiEmoji = item.roi_pct >= 0 ? '📈' : '📉';
+                  
                   return [
-                    `📈 Rendite: ${sign}${item.roi_pct.toFixed(2)} % (${diffSign}${diff.toFixed(2)} €)`,
+                    `${roiEmoji} Rendite: ${sign}${item.roi_pct.toFixed(2)} % (${diffSign}${diff.toFixed(2)} €)`,
                     `💼 Portfoliowert: ${item.total_value.toFixed(2)} €`,
                     `💰 Investiert: ${item.invested.toFixed(2)} €`
                   ];
+                },
+                labelTextColor: function(context) {
+                  const item = data[context.dataIndex];
+                  return item.roi_pct >= 0 ? '#34d399' : '#f87171'; // Grün vs Rot
                 }
               }
             }
