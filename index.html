@@ -157,7 +157,6 @@
     const REPO_NAME = "cardmarket-tracker_v3";
     const CONFIG_FILE = "config.json";
 
-    // Sichere UTF-8 Kodierung / Dekodierung für GitHub Base64 API
     function utf8_to_b64(str) {
       return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => {
         return String.fromCharCode('0x' + p1);
@@ -270,7 +269,7 @@
       // Aktueller Bestand
       document.getElementById('statCurrentAvail').textContent = latest.available_items != null ? `${latest.available_items} Stk.` : '-';
 
-      // 2. Rendite-Zeiträume
+      // 2. Zeiträume
       const ms7d = 7 * 24 * 60 * 60 * 1000;
       const ms30d = 30 * 24 * 60 * 60 * 1000;
       const ms12m = 365 * 24 * 60 * 60 * 1000;
@@ -297,7 +296,9 @@
 
     function renderChart(data) {
       const ctx = document.getElementById('priceChart').getContext('2d');
-      const labels = data.map(d => d.timestamp.substring(5, 16));
+      
+      // X-Achsen Label: Reines Datum (MM-DD)
+      const labels = data.map(d => d.timestamp.substring(5, 10));
 
       if (chartInstance) {
         chartInstance.data.datasets.forEach((ds, i) => {
@@ -313,9 +314,10 @@
           borderColor: '#818cf8',
           backgroundColor: '#818cf8',
           yAxisID: 'yPrices',
-          tension: 0.2,
-          borderWidth: 2.5,
-          pointRadius: 4,
+          tension: 0.3,
+          borderWidth: 3,
+          pointRadius: 1.5,
+          pointHoverRadius: 5,
           hidden: datasetVisibilityState['Robust (inkl. Versand)'] || false
         },
         {
@@ -324,9 +326,10 @@
           borderColor: '#c084fc',
           backgroundColor: '#c084fc',
           yAxisID: 'yPrices',
-          tension: 0.2,
-          borderWidth: 2.5,
-          pointRadius: 4,
+          tension: 0.3,
+          borderWidth: 3,
+          pointRadius: 1.5,
+          pointHoverRadius: 5,
           hidden: datasetVisibilityState['Markt (inkl. Versand)'] || false
         },
         {
@@ -336,9 +339,10 @@
           backgroundColor: '#64748b',
           borderDash: [5, 5],
           yAxisID: 'yPrices',
-          tension: 0.2,
-          borderWidth: 1.5,
-          pointRadius: 3,
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 1,
+          pointHoverRadius: 4,
           hidden: datasetVisibilityState['Robust (ohne Versand)'] || false
         },
         {
@@ -348,9 +352,10 @@
           backgroundColor: '#94a3b8',
           borderDash: [5, 5],
           yAxisID: 'yPrices',
-          tension: 0.2,
-          borderWidth: 1.5,
-          pointRadius: 3,
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 1,
+          pointHoverRadius: 4,
           hidden: datasetVisibilityState['Markt (ohne Versand)'] || false
         },
         {
@@ -359,9 +364,10 @@
           borderColor: '#f59e0b',
           backgroundColor: '#f59e0b',
           yAxisID: 'yQuantity',
-          tension: 0.1,
-          borderWidth: 2,
-          pointRadius: 3,
+          tension: 0.2,
+          borderWidth: 3,
+          pointRadius: 1.5,
+          pointHoverRadius: 5,
           hidden: datasetVisibilityState['Verfügbare Menge'] || false
         }
       ];
@@ -407,6 +413,10 @@
               borderWidth: 1,
               padding: 12,
               callbacks: {
+                title: function(tooltipItems) {
+                  const idx = tooltipItems[0].dataIndex;
+                  return `📅 ${data[idx].timestamp}`; // Im Tooltip bleibt die exakte Uhrzeit erhalten
+                },
                 label: function(context) {
                   const label = context.dataset.label || '';
                   const val = context.parsed.y;
@@ -432,7 +442,11 @@
           scales: {
             x: {
               grid: { color: '#1e293b' },
-              ticks: { color: '#94a3b8' }
+              ticks: { 
+                color: '#94a3b8',
+                maxTicksLimit: 12, // Begrenzt die Tick-Anzahl für optimale Lesbarkeit
+                maxRotation: 0
+              }
             },
             yPrices: {
               type: 'linear',
