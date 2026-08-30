@@ -11,23 +11,84 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen p-4 md:p-8 font-sans antialiased">
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 md:p-8 font-sans antialiased overflow-x-hidden">
 
+  <!-- ================= SEITENLEISTE (DRAWER NAVIGATION) ================= -->
+  <!-- Backdrop Overlay -->
+  <div id="sidebarBackdrop" onclick="toggleSidebar(false)" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300"></div>
+
+  <!-- Sidebar Panel -->
+  <aside id="sidebarPanel" class="fixed top-0 left-0 bottom-0 w-72 bg-slate-900 border-r border-slate-800 shadow-2xl z-50 transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col justify-between p-5">
+    <div class="space-y-6">
+      
+      <!-- Sidebar Header -->
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">📈</span>
+          <span class="font-bold text-white text-base tracking-tight">Navigation</span>
+        </div>
+        <button onclick="toggleSidebar(false)" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <!-- Navigation Items -->
+      <nav class="space-y-1.5" id="navMenuList">
+        <button onclick="switchTab('market')" id="navBtn-market" class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-semibold bg-indigo-600/15 text-indigo-400 border border-indigo-500/30 transition">
+          <div class="flex items-center gap-3">
+            <span class="text-base">📈</span>
+            <span>Markt-Tracker</span>
+          </div>
+          <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded-md font-medium">Aktiv</span>
+        </button>
+
+        <button onclick="switchTab('portfolio-input')" id="navBtn-portfolio-input" class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition">
+          <div class="flex items-center gap-3">
+            <span class="text-base">💼</span>
+            <span>Mein Bestand</span>
+          </div>
+        </button>
+
+        <button onclick="switchTab('portfolio-perf')" id="navBtn-portfolio-perf" class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition">
+          <div class="flex items-center gap-3">
+            <span class="text-base">📊</span>
+            <span>Portfolio-Performance</span>
+          </div>
+        </button>
+      </nav>
+
+    </div>
+
+    <!-- Sidebar Footer -->
+    <div class="pt-4 border-t border-slate-800 text-[11px] text-slate-500 text-center">
+      GiG - Gescraped ist Geil v3.0
+    </div>
+  </aside>
+
+  <!-- ================= HAUPTINHALT ================= -->
   <div class="max-w-6xl mx-auto space-y-6">
     
     <!-- Top Bar & Auth State -->
-    <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg relative z-40">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-          📈 GiG - Gescraped ist Geil
-        </h1>
-        <p class="text-sm text-indigo-400 font-medium mt-1 italic" id="randomQuote">Lädt Spruch...</p>
+    <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-5 md:p-6 rounded-2xl border border-slate-800 shadow-lg relative z-40">
+      
+      <div class="flex items-center gap-3">
+        <!-- Sidebar Toggle Button -->
+        <button onclick="toggleSidebar(true)" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl transition flex items-center justify-center shadow-sm">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+
+        <div>
+          <h1 class="text-xl md:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            📈 GiG - Gescraped ist Geil
+          </h1>
+          <p class="text-xs md:text-sm text-indigo-400 font-medium mt-0.5 italic" id="randomQuote">Lädt Spruch...</p>
+        </div>
       </div>
 
       <div class="flex flex-wrap items-center gap-3">
         <!-- Auth Button / Profile -->
         <div id="authContainer">
-          <button onclick="openAuthModal()" id="loginBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-sm font-medium px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+          <button onclick="openAuthModal()" id="loginBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs md:text-sm font-medium px-3.5 py-2.5 rounded-xl transition flex items-center gap-2">
             👤 Anmelden / Registrieren
           </button>
           <div id="userProfile" class="hidden flex items-center gap-2 bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-xl text-xs">
@@ -36,24 +97,11 @@
           </div>
         </div>
 
-        <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-md">
+        <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs md:text-sm font-medium px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-md">
           <span>+</span> Artikel hinzufügen
         </button>
       </div>
     </header>
-
-    <!-- Tab-Navigation -->
-    <nav class="flex border-b border-slate-800 space-x-2">
-      <button onclick="switchTab('market')" id="tabBtn-market" class="tab-btn px-5 py-3 text-sm font-semibold border-b-2 border-indigo-500 text-indigo-400 transition">
-        📈 Markt-Tracker
-      </button>
-      <button onclick="switchTab('portfolio-input')" id="tabBtn-portfolio-input" class="tab-btn px-5 py-3 text-sm font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent transition">
-        💼 Mein Bestand
-      </button>
-      <button onclick="switchTab('portfolio-perf')" id="tabBtn-portfolio-perf" class="tab-btn px-5 py-3 text-sm font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent transition">
-        📊 Portfolio-Performance
-      </button>
-    </nav>
 
     <!-- ================= TAB 1: MARKT-TRACKER ================= -->
     <main id="tab-market" class="space-y-6">
@@ -380,13 +428,9 @@
   <script>
     // ================= SUPABASE KONFIGURATION =================
     const SUPABASE_URL = "https://nxtpixbuesueouszfocg.supabase.co";
-    // Trage hier deinen vollständigen Anon-Key aus Screenshot 3 ein:
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54dHBpeGJ1ZXN1ZW91c3pmb2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDY1NjUsImV4cCI6MjEwMzY4MjU2NX0.MgQqiuqGCACeeR7K7bRw9p6sbjc1lHip60zXXT_bpGc";
     
-    let supabaseClient = null;
-    if (SUPABASE_ANON_KEY !== "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54dHBpeGJ1ZXN1ZW91c3pmb2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDY1NjUsImV4cCI6MjEwMzY4MjU2NX0.MgQqiuqGCACeeR7K7bRw9p6sbjc1lHip60zXXT_bpGc") {
-      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    }
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const quotes = [
       "Wie geil ist Dustin?!",
@@ -426,18 +470,46 @@
       return shortYear ? `${day}.${month}.${year.substring(2)}` : `${day}.${month}.${year}`;
     }
 
+    // --- SIDEBAR DRAWER STEUERUNG ---
+    function toggleSidebar(open = null) {
+      const panel = document.getElementById('sidebarPanel');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      const isOpen = !panel.classList.contains('-translate-x-full');
+      const shouldOpen = open !== null ? open : !isOpen;
+
+      if (shouldOpen) {
+        backdrop.classList.remove('hidden');
+        setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
+        panel.classList.remove('-translate-x-full');
+      } else {
+        backdrop.classList.add('opacity-0');
+        panel.classList.add('-translate-x-full');
+        setTimeout(() => backdrop.classList.add('hidden'), 300);
+      }
+    }
+
     // --- TAB SWITCHING ---
     function switchTab(tabId) {
       document.querySelectorAll('main').forEach(m => m.classList.add('hidden'));
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('border-indigo-500', 'text-indigo-400');
-        btn.classList.add('border-transparent', 'text-slate-400');
+      
+      // Sidebar Button Active State anpassen
+      document.querySelectorAll('#navMenuList button').forEach(btn => {
+        btn.className = 'w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition';
+        const badge = btn.querySelector('span:last-child');
+        if (badge && badge.textContent === 'Aktiv') badge.remove();
       });
 
       document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-      const activeBtn = document.getElementById(`tabBtn-${tabId}`);
-      activeBtn.classList.add('border-indigo-500', 'text-indigo-400');
-      activeBtn.classList.remove('border-transparent', 'text-slate-400');
+      const activeBtn = document.getElementById(`navBtn-${tabId}`);
+      if (activeBtn) {
+        activeBtn.className = 'w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-semibold bg-indigo-600/15 text-indigo-400 border border-indigo-500/30 transition';
+        const activeBadge = document.createElement('span');
+        activeBadge.className = 'text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded-md font-medium';
+        activeBadge.textContent = 'Aktiv';
+        activeBtn.appendChild(activeBadge);
+      }
+
+      toggleSidebar(false);
 
       if (tabId === 'portfolio-input') {
         renderPortfolioTable();
@@ -511,12 +583,6 @@
       const password = document.getElementById('authPassword').value;
       const statusBox = document.getElementById('authStatus');
 
-      if (!supabaseClient) {
-        statusBox.textContent = 'Supabase Anon Key noch nicht hinterlegt!';
-        statusBox.className = 'text-xs p-2.5 rounded-lg bg-rose-950 text-rose-300 border border-rose-800';
-        return;
-      }
-
       try {
         if (authIsSignUp) {
           const { error } = await supabaseClient.auth.signUp({ email, password });
@@ -566,7 +632,6 @@
     }
 
     async function savePortfolioToSupabase() {
-      // Eingaben aus Tabelle auslesen
       const rows = document.querySelectorAll('#portfolioTableBody tr');
       rows.forEach(r => {
         const pName = r.dataset.product;
@@ -580,7 +645,6 @@
         }
       });
 
-      // Lokal speichern als Backup
       localStorage.setItem('local_user_portfolio', JSON.stringify(userPortfolioMap));
 
       if (currentUser && supabaseClient) {
@@ -613,7 +677,6 @@
       const tbody = document.getElementById('portfolioTableBody');
       tbody.innerHTML = '';
 
-      // Alphabetisch sortieren
       const sortedProducts = [...configProducts].sort((a, b) => a.name.localeCompare(b.name));
 
       sortedProducts.forEach(item => {
@@ -621,7 +684,6 @@
         const pType = (item.type || 'single').toLowerCase();
         const userItem = userPortfolioMap[pName] || { quantity: 0, buy_price: 0 };
 
-        // Aktuellen Marktpreis (Ø Robust ohne Versand) ermitteln
         const productRows = globalData.filter(d => d.product_name === pName);
         const latest = productRows[productRows.length - 1];
         const curMarketPrice = latest ? (latest.avg_robust || 0) : 0;
@@ -650,7 +712,6 @@
 
     // --- PORTFOLIO PERFORMANCE BERECHNUNG ---
     function updatePortfolioDashboard() {
-      // 1. Statische KPIs
       let totalCurrentValue = 0;
       let totalInvested = 0;
       let totalItemsQty = 0;
@@ -703,7 +764,6 @@
         document.getElementById('portStatTopPositionShare').textContent = '-';
       }
 
-      // 2. Zeitliche Performance-Serie berechnen
       const timestamps = [...new Set(globalData.map(d => d.timestamp))].sort((a, b) => new Date(a.replace(' ', 'T')) - new Date(b.replace(' ', 'T')));
 
       const portfolioHistory = timestamps.map(ts => {
@@ -720,7 +780,6 @@
         return { timestamp: ts, total_value: roundNum(valueAtTs, 2) };
       });
 
-      // 3. Rendite-Kacheln für Portfolio
       if (portfolioHistory.length > 1) {
         const latestTime = new Date(portfolioHistory[portfolioHistory.length - 1].timestamp.replace(' ', 'T')).getTime();
         const msDay = 24 * 60 * 60 * 1000;
@@ -737,7 +796,6 @@
         document.getElementById('portStatPerf12m').innerHTML = row12m ? formatDelta(curVal, row12m.total_value, true) : '-';
       }
 
-      // 4. Portfolio Graph
       const filteredPortHistory = filterPortHistoryByTimeRange(portfolioHistory, portCurrentTimeRange);
       renderPortfolioChart(filteredPortHistory);
     }
@@ -1168,7 +1226,7 @@
           },
           scales: {
             x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', maxTicksLimit: 10 } },
-            yPrices: {
+            y: {
               type: 'linear',
               position: 'left',
               grid: { color: '#1e293b' },
