@@ -140,7 +140,8 @@
     const quotes = [
       "Wie geil ist Dustin?!",
       "Eyyy det is n Softklos, nicht einfach zuknallen wie beim Trabi",
-      "Hii Nick Gersau, lieebe Grüße..."
+      "Hii Nick Gersau, lieebe Grüße...",
+      "Rene Schneedo - AHHHHHHHHHHHHHH"
     ];
 
     function setRandomQuote() {
@@ -150,6 +151,8 @@
 
     let globalData = [];
     let chartInstance = null;
+    let datasetVisibilityState = {}; // Merkt sich ein-/ausgeblendete Linien
+
     const REPO_OWNER = "paul31e";
     const REPO_NAME = "cardmarket-tracker_v3";
     const CONFIG_FILE = "config.json";
@@ -216,7 +219,7 @@
         : `${sign}${Math.round(diff)} Stk.`;
 
       const colorClass = diff > 0 
-        ? (isPrice ? 'text-emerald-400' : 'text-emerald-400') 
+        ? 'text-emerald-400' 
         : (diff < 0 ? 'text-rose-400' : 'text-slate-300');
 
       return `<span class="${colorClass}">${pctFormatted}</span> <span class="text-xs text-slate-400 font-normal">(${valFormatted})</span>`;
@@ -285,6 +288,14 @@
       const ctx = document.getElementById('priceChart').getContext('2d');
       const labels = data.map(d => d.timestamp.substring(5, 16));
 
+      // Bestehende Ausblendungs-Zustände aus dem vorherigen Chart sichern
+      if (chartInstance) {
+        chartInstance.data.datasets.forEach((ds, i) => {
+          datasetVisibilityState[ds.label] = !chartInstance.isDatasetVisible(i);
+        });
+        chartInstance.destroy();
+      }
+
       const datasets = [
         {
           label: 'Robust (inkl. Versand)',
@@ -294,7 +305,8 @@
           yAxisID: 'yPrices',
           tension: 0.2,
           borderWidth: 2.5,
-          pointRadius: 4
+          pointRadius: 4,
+          hidden: datasetVisibilityState['Robust (inkl. Versand)'] || false
         },
         {
           label: 'Markt (inkl. Versand)',
@@ -304,7 +316,8 @@
           yAxisID: 'yPrices',
           tension: 0.2,
           borderWidth: 2.5,
-          pointRadius: 4
+          pointRadius: 4,
+          hidden: datasetVisibilityState['Markt (inkl. Versand)'] || false
         },
         {
           label: 'Robust (ohne Versand)',
@@ -315,7 +328,8 @@
           yAxisID: 'yPrices',
           tension: 0.2,
           borderWidth: 1.5,
-          pointRadius: 3
+          pointRadius: 3,
+          hidden: datasetVisibilityState['Robust (ohne Versand)'] || false
         },
         {
           label: 'Markt (ohne Versand)',
@@ -326,7 +340,8 @@
           yAxisID: 'yPrices',
           tension: 0.2,
           borderWidth: 1.5,
-          pointRadius: 3
+          pointRadius: 3,
+          hidden: datasetVisibilityState['Markt (ohne Versand)'] || false
         },
         {
           label: 'Verfügbare Menge',
@@ -336,13 +351,10 @@
           yAxisID: 'yQuantity',
           tension: 0.1,
           borderWidth: 2,
-          pointRadius: 3
+          pointRadius: 3,
+          hidden: datasetVisibilityState['Verfügbare Menge'] || false
         }
       ];
-
-      if (chartInstance) {
-        chartInstance.destroy();
-      }
 
       chartInstance = new Chart(ctx, {
         type: 'line',
@@ -362,6 +374,20 @@
                 boxWidth: 12,
                 padding: 16,
                 font: { size: 12, weight: '500' }
+              },
+              onClick: function(e, legendItem, legend) {
+                const index = legendItem.datasetIndex;
+                const ci = legend.chart;
+                if (ci.isDatasetVisible(index)) {
+                  ci.hide(index);
+                  legendItem.hidden = true;
+                } else {
+                  ci.show(index);
+                  legendItem.hidden = false;
+                }
+                // Zustand direkt im Status-Objekt mitspeichern
+                const label = ci.data.datasets[index].label;
+                datasetVisibilityState[label] = !ci.isDatasetVisible(index);
               }
             },
             tooltip: {
