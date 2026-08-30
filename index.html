@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TCG Cardmarket Price Tracker</title>
+  
+  <!-- Tailwind CSS & Chart.js -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 md:p-8 font-sans antialiased">
+
+  <div class="max-w-6xl mx-auto space-y-6">
+    
+    <!-- Top Bar -->
+    <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+          📈 Cardmarket Tracker
+        </h1>
+        <p class="text-sm text-slate-400 mt-1">Preishistorie & Marktanalysen</p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <label for="productSelect" class="text-sm font-medium text-slate-300 whitespace-nowrap">Produkt:</label>
+        <select id="productSelect" class="bg-slate-800 border border-slate-700 text-white text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 outline-none min-w-[280px]">
+          <!-- Optionen dynamisch via JS -->
+        </select>
+      </div>
+    </header>
+
+    <!-- KPI Metric Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="statsContainer">
+      <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <span class="text-xs text-slate-400 font-medium">Günstigster Gesamtpreis</span>
+        <div class="text-xl font-bold text-emerald-400 mt-1" id="statCheapest">-</div>
+      </div>
+      <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <span class="text-xs text-slate-400 font-medium">Ø Robust (inkl. Versand)</span>
+        <div class="text-xl font-bold text-indigo-400 mt-1" id="statRobustShip">-</div>
+      </div>
+      <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <span class="text-xs text-slate-400 font-medium">Ø Markt (inkl. Versand)</span>
+        <div class="text-xl font-bold text-purple-400 mt-1" id="statMarketShip">-</div>
+      </div>
+      <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <span class="text-xs text-slate-400 font-medium">Verfügbare Artikel</span>
+        <div class="text-xl font-bold text-amber-400 mt-1" id="statAvailable">-</div>
+      </div>
+    </div>
+
+    <!-- Chart Container -->
+    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg">
+      <div class="h-[500px] w-full relative">
+        <canvas id="priceChart"></canvas>
+      </div>
+      <div class="mt-4 text-xs text-slate-500 text-center">
+        💡 Klicke auf Einträge in der Legende zum Aus-/Einblenden von Linien. Hover über Datenpunkte für die Top 3 Angebote.
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let globalData = [];
+    let chartInstance = null;
+
+    async function loadData() {
+      // Cache-Busting via Timestamp, damit immer die neueste CSV geladen wird
+      const csvPath = 'data/data.csv?v=' + new Date().getTime();
+      Papa.parse(csvPath, {
+        download: true,
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          globalData = results.data.filter(row => row.product_name && row.timestamp);
+          initProductDropdown();
+        }
+      });
+    }
+
+    function initProductDropdown() {
+      const select = document.getElementById('productSelect');
+      const products = [...new Set(globalData.map(item => item.product_name))];
+
+      select.innerHTML = '';
+      products.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = p;
+        select.appendChild(opt);
+      });
+
+      select.addEventListener('change', () => updateDashboard(select.value));
+
+      if (products.length > 0) {
+        updateDashboard(products[0]);
+      }
+    }
+
+    function updateDashboard(productName) {
+      const filtered = globalData
+        .filter(d => d.product_name === productName)
+        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+      if (filtered.length === 0) return;
+
+      const latest = filtered[filtered.length - 1];
+      document.getElementById('statCheapest').textContent = latest.cheapest_1 ? `${latest.cheapest_1.toFixed(2)} €` : '-';
+      document.getElementById('statRobustShip').textContent = latest.avg_robust_shipping ? `${latest.avg_robust_shipping.toFixed(2)} €` : '-';
+      document.getElementById('statMarketShip').textContent = latest.avg_market_shipping ? `${latest.avg_market_shipping.toFixed(2)} €` : '-';
+      document.getElementById('statAvailable').textContent = latest.available_items != null ? `${latest.available_items} Stk.` : '-';
+
+      renderChart(filtered);
+    }
+
+    function renderChart(data) {
+      const ctx = document.getElementById('priceChart').getContext('2d');
+      const labels = data.map(d => d.timestamp.substring(5, 16)); // Format: MM-DD HH:MM
+
+      const datasets = [
+        {
+          label: 'Robust (inkl. Versand)',
+          data: data.map(d => d.avg_robust_shipping),
+          borderColor: '#818cf8',
+          backgroundColor: '#818cf8',
+          yAxisID: 'yPrices',
+          tension: 0.2,
+          borderWidth: 2.5,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        },
+        {
+          label: 'Markt (inkl. Versand)',
+          data: data.map(d => d.avg_market_shipping),
+          borderColor: '#c084fc',
+          backgroundColor: '#c084fc',
+          yAxisID: 'yPrices',
+          tension: 0.2,
+          borderWidth: 2.5,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        },
+        {
+          label: 'Robust (ohne Versand)',
+          data: data.map(d => d.avg_robust),
+          borderColor: '#64748b',
+          backgroundColor: '#64748b',
+          borderDash: [5, 5],
+          yAxisID: 'yPrices',
+          tension: 0.2,
+          borderWidth: 1.5,
+          pointRadius: 3
+        },
+        {
+          label: 'Markt (ohne Versand)',
+          data: data.map(d => d.avg_market),
+          borderColor: '#94a3b8',
+          backgroundColor: '#94a3b8',
+          borderDash: [5, 5],
+          yAxisID: 'yPrices',
+          tension: 0.2,
+          borderWidth: 1.5,
+          pointRadius: 3
+        },
+        {
+          label: 'Verfügbare Menge',
+          data: data.map(d => d.available_items),
+          borderColor: '#f59e0b',
+          backgroundColor: '#f59e0b',
+          yAxisID: 'yQuantity',
+          tension: 0.1,
+          borderWidth: 2,
+          pointRadius: 3
+        }
+      ];
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                color: '#cbd5e1',
+                boxWidth: 12,
+                padding: 16,
+                font: { size: 12, weight: '500' }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#020617',
+              titleColor: '#f8fafc',
+              bodyColor: '#cbd5e1',
+              borderColor: '#334155',
+              borderWidth: 1,
+              padding: 12,
+              displayColors: true,
+              callbacks: {
+                label: function(context) {
+                  const label = context.dataset.label || '';
+                  const val = context.parsed.y;
+                  if (context.dataset.yAxisID === 'yQuantity') {
+                    return `${label}: ${val} Stk.`;
+                  }
+                  return `${label}: ${val != null ? val.toFixed(2) : '-'} €`;
+                },
+                afterBody: function(tooltipItems) {
+                  const index = tooltipItems[0].dataIndex;
+                  const row = data[index];
+                  return [
+                    '',
+                    '📦 3 Günstigste Gesamtpreise:',
+                    ` 1️⃣ ${row.cheapest_1 != null ? row.cheapest_1.toFixed(2) + ' €' : '-'}`,
+                    ` 2️⃣ ${row.cheapest_2 != null ? row.cheapest_2.toFixed(2) + ' €' : '-'}`,
+                    ` 3️⃣ ${row.cheapest_3 != null ? row.cheapest_3.toFixed(2) + ' €' : '-'}`
+                  ];
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#1e293b' },
+              ticks: { color: '#94a3b8' }
+            },
+            yPrices: {
+              type: 'linear',
+              position: 'left',
+              grid: { color: '#1e293b' },
+              ticks: {
+                color: '#818cf8',
+                callback: value => value + ' €'
+              },
+              title: {
+                display: true,
+                text: 'Preise (€)',
+                color: '#818cf8',
+                font: { weight: '600' }
+              }
+            },
+            yQuantity: {
+              type: 'linear',
+              position: 'right',
+              grid: { drawOnChartArea: false },
+              ticks: {
+                color: '#f59e0b',
+                precision: 0
+              },
+              title: {
+                display: true,
+                text: 'Bestand (Stück)',
+                color: '#f59e0b',
+                font: { weight: '600' }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', loadData);
+  </script>
+</body>
+</html>
