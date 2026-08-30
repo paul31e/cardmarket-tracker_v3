@@ -207,7 +207,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-6 border-b border-slate-800">
           <div>
             <h2 class="text-xl font-bold text-white tracking-tight">💼 Mein Portfolio-Bestand</h2>
-            <p class="text-xs text-slate-400 mt-1">Trage deine gekauften Stückzahlen und durchschnittlichen Einkaufspreise (EK) ein.</p>
+            <p class="text-xs text-slate-400 mt-1">Trage deine Stückzahlen, Einkaufspreise (EK) und das Kaufdatum ein.</p>
           </div>
           
           <button onclick="savePortfolioToSupabase()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow-lg">
@@ -220,7 +220,7 @@
           <button onclick="openAuthModal()" class="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-medium whitespace-nowrap">Anmelden</button>
         </div>
 
-        <!-- Sortierbare Tabelle mit Direkt-Links -->
+        <!-- Sortierbare Tabelle mit Kaufdatum -->
         <div class="overflow-x-auto">
           <table class="w-full text-left text-sm text-slate-300">
             <thead class="bg-slate-950/80 text-xs uppercase text-slate-400 border-b border-slate-800 select-none">
@@ -231,11 +231,14 @@
                 <th onclick="toggleSort('type')" class="p-3.5 cursor-pointer hover:text-white transition">
                   Typ <span id="sortIcon-type" class="text-slate-500">↕</span>
                 </th>
-                <th onclick="toggleSort('quantity')" class="p-3.5 w-32 cursor-pointer hover:text-white transition">
+                <th onclick="toggleSort('quantity')" class="p-3.5 w-28 cursor-pointer hover:text-white transition">
                   Stückzahl <span id="sortIcon-quantity" class="text-slate-500">↕</span>
                 </th>
-                <th onclick="toggleSort('buy_price')" class="p-3.5 w-36 cursor-pointer hover:text-white transition">
+                <th onclick="toggleSort('buy_price')" class="p-3.5 w-32 cursor-pointer hover:text-white transition">
                   Mein Ø EK (€) <span id="sortIcon-buy_price" class="text-slate-500">↕</span>
+                </th>
+                <th onclick="toggleSort('buy_date')" class="p-3.5 w-36 cursor-pointer hover:text-white transition">
+                  Kaufdatum <span id="sortIcon-buy_date" class="text-slate-500">↕</span>
                 </th>
                 <th onclick="toggleSort('current_price')" class="p-3.5 text-right cursor-pointer hover:text-white transition">
                   Marktpreis <span id="sortIcon-current_price" class="text-slate-500">↕</span>
@@ -312,20 +315,28 @@
         </div>
       </div>
 
-      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg">
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg relative">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-4 border-b border-slate-800/80">
           <div>
-            <h2 class="text-lg font-bold text-white tracking-tight">📈 Gesamtwert-Entwicklung</h2>
-            <p class="text-xs text-slate-500 mt-0.5">Historischer Portfoliowert (exklusive Versandkosten)</p>
+            <h2 class="text-lg font-bold text-white tracking-tight">📈 Gesamtwert-Entwicklung (%)</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Performance-Verlauf in Prozent relativ zum investierten Kapital</p>
           </div>
 
-          <div class="inline-flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold" id="portTimeFilterButtons">
-            <button onclick="setPortTimeRange('7d')" data-range="7d" class="port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">7T</button>
-            <button onclick="setPortTimeRange('30d')" data-range="30d" class="port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">1M</button>
-            <button onclick="setPortTimeRange('6m')" data-range="6m" class="port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">6M</button>
-            <button onclick="setPortTimeRange('12m')" data-range="12m" class="port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">1J</button>
-            <button onclick="setPortTimeRange('ytd')" data-range="ytd" class="port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">YTD</button>
-            <button onclick="setPortTimeRange('all')" data-range="all" class="port-time-btn px-2.5 py-1 rounded-lg transition bg-indigo-600 text-white shadow-sm">Alles</button>
+          <div class="flex flex-wrap items-center gap-3">
+            <!-- Hervorgehobener aktueller Euro-Wert am Chart-Eck -->
+            <div class="bg-slate-950 px-3.5 py-1.5 rounded-xl border border-slate-800 flex items-center gap-2">
+              <span class="text-xs text-slate-400 font-medium">Aktueller Wert:</span>
+              <span class="text-sm font-bold text-emerald-400" id="portChartCurValBadge">0.00 €</span>
+            </div>
+
+            <div class="inline-flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold" id="portTimeFilterButtons">
+              <button onclick="setPortTimeRange('7d')" data-range="7d" class="port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">7T</button>
+              <button onclick="setPortTimeRange('30d')" data-range="30d" class="port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">1M</button>
+              <button onclick="setPortTimeRange('6m')" data-range="6m" class="port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">6M</button>
+              <button onclick="setPortTimeRange('12m')" data-range="12m" class="port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">1J</button>
+              <button onclick="setPortTimeRange('ytd')" data-range="ytd" class="port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">YTD</button>
+              <button onclick="setPortTimeRange('all')" data-range="all" class="port-time-btn px-2.5 py-1 rounded-lg transition bg-indigo-600 text-white shadow-sm">Alles</button>
+            </div>
           </div>
         </div>
 
@@ -433,7 +444,7 @@
 
     let globalData = [];
     let configProducts = [];
-    let userPortfolioMap = {}; // { product_name: { quantity: 0, buy_price: 0 } }
+    let userPortfolioMap = {}; // { product_name: { quantity: 0, buy_price: 0, buy_date: '' } }
     let currentUser = null;
     let authIsSignUp = false;
 
@@ -443,7 +454,7 @@
 
     // Tabellensortierung
     let currentSortColumn = "name";
-    let currentSortDirection = "asc"; // 'asc', 'desc', 'none'
+    let currentSortDirection = "asc";
 
     let chartInstance = null;
     let portfolioChartInstance = null;
@@ -483,7 +494,6 @@
     function switchTab(tabId) {
       document.querySelectorAll('main').forEach(m => m.classList.add('hidden'));
 
-      // Sidebar Buttons reinigen
       document.querySelectorAll('#navMenuList button').forEach(btn => {
         btn.className = 'w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition';
       });
@@ -519,7 +529,7 @@
     }
 
     function updateSortIcons() {
-      ['name', 'type', 'quantity', 'buy_price', 'current_price', 'total_val'].forEach(col => {
+      ['name', 'type', 'quantity', 'buy_price', 'buy_date', 'current_price', 'total_val'].forEach(col => {
         const icon = document.getElementById(`sortIcon-${col}`);
         if (!icon) return;
         if (currentSortColumn === col) {
@@ -532,7 +542,6 @@
       });
     }
 
-    // --- DIREKT-WEITERLEITUNG ZU EINZEL-GRAPH ---
     function goToProductChart(productName) {
       switchTab('market');
       selectProduct(productName);
@@ -633,14 +642,15 @@
       if (currentUser && supabaseClient) {
         const { data, error } = await supabaseClient
           .from('user_portfolios')
-          .select('product_name, quantity, buy_price');
+          .select('product_name, quantity, buy_price, buy_date');
 
         if (!error && data) {
           userPortfolioMap = {};
           data.forEach(item => {
             userPortfolioMap[item.product_name] = {
               quantity: parseFloat(item.quantity) || 0,
-              buy_price: parseFloat(item.buy_price) || 0
+              buy_price: parseFloat(item.buy_price) || 0,
+              buy_date: item.buy_date || ''
             };
           });
         }
@@ -657,10 +667,12 @@
         const pName = r.dataset.product;
         const qInput = r.querySelector('.port-qty-input');
         const pInput = r.querySelector('.port-price-input');
-        if (pName && qInput && pInput) {
+        const dInput = r.querySelector('.port-date-input');
+        if (pName && qInput && pInput && dInput) {
           userPortfolioMap[pName] = {
             quantity: Math.max(0, parseFloat(qInput.value) || 0),
-            buy_price: Math.max(0, parseFloat(pInput.value) || 0)
+            buy_price: Math.max(0, parseFloat(pInput.value) || 0),
+            buy_date: dInput.value || ''
           };
         }
       });
@@ -673,6 +685,7 @@
           product_name: pName,
           quantity: userPortfolioMap[pName].quantity,
           buy_price: userPortfolioMap[pName].buy_price,
+          buy_date: userPortfolioMap[pName].buy_date || null,
           updated_at: new Date().toISOString()
         }));
 
@@ -698,11 +711,10 @@
       const tbody = document.getElementById('portfolioTableBody');
       tbody.innerHTML = '';
 
-      // Tabellendaten aufbereiten
       const tableData = configProducts.map(item => {
         const pName = item.name;
         const pType = (item.type || 'single').toLowerCase();
-        const userItem = userPortfolioMap[pName] || { quantity: 0, buy_price: 0 };
+        const userItem = userPortfolioMap[pName] || { quantity: 0, buy_price: 0, buy_date: '' };
 
         const productRows = globalData.filter(d => d.product_name === pName);
         const latest = productRows[productRows.length - 1];
@@ -715,12 +727,12 @@
           type: pType,
           quantity: userItem.quantity,
           buy_price: userItem.buy_price,
+          buy_date: userItem.buy_date || '',
           current_price: curMarketPrice,
           total_val: totalVal
         };
       });
 
-      // Sortierung anwenden
       tableData.sort((a, b) => {
         let valA = a[currentSortColumn];
         let valB = b[currentSortColumn];
@@ -746,6 +758,9 @@
           <td class="p-3.5">
             <input type="number" min="0" step="0.5" value="${item.buy_price || ''}" placeholder="0.00" class="port-price-input w-28 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none">
           </td>
+          <td class="p-3.5">
+            <input type="date" value="${item.buy_date || ''}" class="port-date-input bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none">
+          </td>
           <td class="p-3.5 text-right font-medium text-slate-300">${item.current_price ? item.current_price.toFixed(2) + ' €' : '-'}</td>
           <td class="p-3.5 text-right font-bold text-indigo-400">${item.total_val > 0 ? item.total_val.toFixed(2) + ' €' : '-'}</td>
           <td class="p-3.5 text-center">
@@ -763,7 +778,7 @@
       });
     }
 
-    // --- PORTFOLIO PERFORMANCE BERECHNUNG ---
+    // --- PORTFOLIO PERFORMANCE & LINEARE INTERPOLATION ---
     function updatePortfolioDashboard() {
       let totalCurrentValue = 0;
       let totalInvested = 0;
@@ -786,7 +801,6 @@
           const posVal = u.quantity * curUnitPrice;
           totalCurrentValue += posVal;
 
-          // Teuerster Einzelwert (Stückpreis)
           if (curUnitPrice > mostExpensiveItemPrice) {
             mostExpensiveItemPrice = curUnitPrice;
             mostExpensiveItemName = pName;
@@ -801,6 +815,7 @@
       document.getElementById('portStatTotalValue').textContent = `${totalCurrentValue.toFixed(2)} €`;
       document.getElementById('portStatInvested').textContent = `${totalInvested.toFixed(2)} €`;
       document.getElementById('portStatItemsCount').textContent = `${totalPositionsCount} Pos. / ${totalItemsQty} Stk.`;
+      document.getElementById('portChartCurValBadge').textContent = `${totalCurrentValue.toFixed(2)} €`;
 
       if (totalInvested > 0) {
         const roiColor = roiDiff >= 0 ? 'text-emerald-400' : 'text-rose-400';
@@ -817,31 +832,90 @@
         document.getElementById('portStatMostExpensivePrice').textContent = '-';
       }
 
-      // 2. Historische Portfolio-Entwicklung
-      // Bereinigung: Fehlen Vergangenheitsdaten zu einem Artikel, wird der EK herangezogen
-      const timestamps = [...new Set(globalData.map(d => d.timestamp))].sort((a, b) => new Date(a.replace(' ', 'T')) - new Date(b.replace(' ', 'T')));
+      // --- HISTORIE & LINEARE INTERPOLATION GENERIEREN ---
+      const scrapeTimestamps = [...new Set(globalData.map(d => d.timestamp))].sort((a, b) => new Date(a.replace(' ', 'T')) - new Date(b.replace(' ', 'T')));
+      const allDailyTimeline = [];
 
-      const portfolioHistory = timestamps.map(ts => {
+      // Ältestes Kaufdatum finden
+      let earliestDate = scrapeTimestamps.length > 0 ? new Date(scrapeTimestamps[0].replace(' ', 'T')) : new Date();
+      Object.keys(userPortfolioMap).forEach(pName => {
+        const u = userPortfolioMap[pName];
+        if (u.quantity > 0 && u.buy_date) {
+          const bDate = new Date(u.buy_date + 'T00:00:00');
+          if (bDate < earliestDate) earliestDate = bDate;
+        }
+      });
+
+      // Hilfsmap für den ersten echten Scrape jedes Produkts
+      const firstScrapes = {};
+      configProducts.forEach(p => {
+        const pRows = globalData.filter(d => d.product_name === p.name && d.avg_robust != null);
+        if (pRows.length > 0) {
+          firstScrapes[p.name] = {
+            time: new Date(pRows[0].timestamp.replace(' ', 'T')).getTime(),
+            price: pRows[0].avg_robust
+          };
+        }
+      });
+
+      // Tägliche Zeitachse von earliestDate bis zum ersten Scrape
+      const msDay = 24 * 60 * 60 * 1000;
+      const firstScrapeTime = scrapeTimestamps.length > 0 ? new Date(scrapeTimestamps[0].replace(' ', 'T')).getTime() : new Date().getTime();
+      
+      let curT = earliestDate.getTime();
+      while (curT < firstScrapeTime) {
+        const iso = new Date(curT).toISOString().substring(0, 10) + ' 12:00:00';
+        allDailyTimeline.push(iso);
+        curT += msDay;
+      }
+      scrapeTimestamps.forEach(ts => allDailyTimeline.push(ts));
+
+      // Portfolio-Punkte über die gesamte Zeitachse berechnen
+      const portfolioHistory = allDailyTimeline.map(ts => {
+        const pointTime = new Date(ts.replace(' ', 'T')).getTime();
         let valueAtTs = 0;
+        let investedAtTs = 0;
+
         Object.keys(userPortfolioMap).forEach(pName => {
           const u = userPortfolioMap[pName];
           if (u.quantity > 0) {
-            const match = globalData.find(d => d.timestamp === ts && d.product_name === pName);
-            if (match && match.avg_robust != null && match.avg_robust > 0) {
-              valueAtTs += (u.quantity * match.avg_robust);
-            } else {
-              // Fallback auf den Einkaufspreis -> verhindert falschen Kursanstieg
-              valueAtTs += (u.quantity * (u.buy_price || 0));
+            const buyTime = u.buy_date ? new Date(u.buy_date + 'T00:00:00').getTime() : firstScrapeTime;
+
+            // Artikel existiert erst ab Kaufdatum
+            if (pointTime >= buyTime) {
+              investedAtTs += (u.quantity * u.buy_price);
+
+              const match = globalData.find(d => d.timestamp === ts && d.product_name === pName);
+              if (match && match.avg_robust != null && match.avg_robust > 0) {
+                // Echte Scraping-Daten vorhanden
+                valueAtTs += (u.quantity * match.avg_robust);
+              } else {
+                // Lineare Interpolation zwischen Kaufdatum (Wert = EK) und erstem Scrape
+                const fScrape = firstScrapes[pName];
+                if (fScrape && fScrape.time > buyTime) {
+                  const progress = Math.min(1, Math.max(0, (pointTime - buyTime) / (fScrape.time - buyTime)));
+                  const interpolatedPrice = u.buy_price + progress * (fScrape.price - u.buy_price);
+                  valueAtTs += (u.quantity * interpolatedPrice);
+                } else {
+                  valueAtTs += (u.quantity * (u.buy_price || 0));
+                }
+              }
             }
           }
         });
-        return { timestamp: ts, total_value: roundNum(valueAtTs, 2) };
+
+        const pctReturn = investedAtTs > 0 ? ((valueAtTs - investedAtTs) / investedAtTs) * 100 : 0;
+        return {
+          timestamp: ts,
+          total_value: roundNum(valueAtTs, 2),
+          invested: roundNum(investedAtTs, 2),
+          roi_pct: roundNum(pctReturn, 2)
+        };
       });
 
-      // 3. Rendite-Kacheln für Portfolio
+      // Rendite-Kacheln für Portfolio
       if (portfolioHistory.length > 1) {
         const latestTime = new Date(portfolioHistory[portfolioHistory.length - 1].timestamp.replace(' ', 'T')).getTime();
-        const msDay = 24 * 60 * 60 * 1000;
 
         const row7d = findClosestPortRecord(portfolioHistory, latestTime - 7 * msDay);
         const row30d = findClosestPortRecord(portfolioHistory, latestTime - 30 * msDay);
@@ -907,7 +981,7 @@
     function renderPortfolioChart(data) {
       const ctx = document.getElementById('portfolioChart').getContext('2d');
       const labels = data.map(d => formatDateGerman(d.timestamp, false));
-      const values = data.map(d => d.total_value);
+      const pctValues = data.map(d => d.roi_pct);
 
       if (portfolioChartInstance) {
         portfolioChartInstance.destroy();
@@ -918,10 +992,10 @@
         data: {
           labels,
           datasets: [{
-            label: 'Portfolio-Gesamtwert (€)',
-            data: values,
+            label: 'Rendite (%)',
+            data: pctValues,
             borderColor: '#10b981',
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            backgroundColor: 'rgba(16, 185, 129, 0.08)',
             fill: true,
             tension: 0.3,
             borderWidth: 3,
@@ -932,6 +1006,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
           plugins: {
             legend: { display: false },
             tooltip: {
@@ -945,7 +1020,15 @@
                   return `📅 ${formatDateGerman(data[idx].timestamp, false)}`;
                 },
                 label: function(context) {
-                  return `Gesamtwert: ${context.parsed.y.toFixed(2)} €`;
+                  const item = data[context.dataIndex];
+                  const sign = item.roi_pct >= 0 ? '+' : '';
+                  const diff = item.total_value - item.invested;
+                  const diffSign = diff >= 0 ? '+' : '';
+                  return [
+                    `📈 Rendite: ${sign}${item.roi_pct.toFixed(2)} % (${diffSign}${diff.toFixed(2)} €)`,
+                    `💼 Portfoliowert: ${item.total_value.toFixed(2)} €`,
+                    `💰 Investiert: ${item.invested.toFixed(2)} €`
+                  ];
                 }
               }
             }
@@ -954,7 +1037,10 @@
             x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', maxTicksLimit: 10 } },
             y: {
               grid: { color: '#1e293b' },
-              ticks: { color: '#10b981', callback: val => val + ' €' }
+              ticks: {
+                color: '#10b981',
+                callback: val => (val >= 0 ? `+${val}%` : `${val}%`)
+              }
             }
           }
         }
