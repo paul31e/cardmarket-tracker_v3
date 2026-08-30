@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TCG Cardmarket Price Tracker</title>
   
+  <!-- Tailwind CSS & Chart.js -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -19,7 +20,7 @@
         <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
           📈 Cardmarket Tracker
         </h1>
-        <p class="text-sm text-slate-400 mt-1">Preishistorie & Marktanalysen</p>
+        <p class="text-sm text-slate-400 mt-1">Preishistorie, Renditen & Marktanalysen</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-3">
@@ -32,23 +33,51 @@
       </div>
     </header>
 
-    <!-- KPI Metric Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="statsContainer">
-      <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-        <span class="text-xs text-slate-400 font-medium">Günstigster Gesamtpreis</span>
-        <div class="text-xl font-bold text-emerald-400 mt-1" id="statCheapest">-</div>
+    <!-- KPI Metric Cards: Preis & Renditen -->
+    <div>
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Preisentwicklung (Ø Robust inkl. Versand) & ATL</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+          <span class="text-xs text-slate-400 font-medium">All-Time Low (ATL)</span>
+          <div class="text-lg font-bold text-emerald-400 mt-1" id="statATL">-</div>
+          <span class="text-[11px] text-slate-500" id="statATLDate">-</span>
+        </div>
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+          <span class="text-xs text-slate-400 font-medium">7-Tage Rendite</span>
+          <div class="text-lg font-bold text-slate-200 mt-1" id="statPrice7d">-</div>
+        </div>
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+          <span class="text-xs text-slate-400 font-medium">30-Tage Rendite</span>
+          <div class="text-lg font-bold text-slate-200 mt-1" id="statPrice30d">-</div>
+        </div>
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+          <span class="text-xs text-slate-400 font-medium">12-Monate Rendite</span>
+          <div class="text-lg font-bold text-slate-200 mt-1" id="statPrice12m">-</div>
+        </div>
       </div>
-      <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-        <span class="text-xs text-slate-400 font-medium">Ø Robust (inkl. Versand)</span>
-        <div class="text-xl font-bold text-indigo-400 mt-1" id="statRobustShip">-</div>
-      </div>
-      <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-        <span class="text-xs text-slate-400 font-medium">Ø Markt (inkl. Versand)</span>
-        <div class="text-xl font-bold text-purple-400 mt-1" id="statMarketShip">-</div>
-      </div>
-      <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-        <span class="text-xs text-slate-400 font-medium">Verfügbare Artikel</span>
-        <div class="text-xl font-bold text-amber-400 mt-1" id="statAvailable">-</div>
+    </div>
+
+    <!-- KPI Metric Cards: Bestands-Dynamik -->
+    <div>
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Verfügbarkeits-Dynamik (Bestandsänderung)</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+          <span class="text-xs text-slate-400 font-medium">Aktueller Bestand</span>
+          <div class="text-lg font-bold text-amber-400 mt-1" id="statCurrentAvail">-</div>
+          <span class="text-[11px] text-slate-500">am Markt gelistet</span>
+        </div>
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+          <span class="text-xs text-slate-400 font-medium">Bestand Δ (7 Tage)</span>
+          <div class="text-lg font-bold text-slate-200 mt-1" id="statAvail7d">-</div>
+        </div>
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+          <span class="text-xs text-slate-400 font-medium">Bestand Δ (30 Tage)</span>
+          <div class="text-lg font-bold text-slate-200 mt-1" id="statAvail30d">-</div>
+        </div>
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+          <span class="text-xs text-slate-400 font-medium">Bestand Δ (12 Monate)</span>
+          <div class="text-lg font-bold text-slate-200 mt-1" id="statAvail12m">-</div>
+        </div>
       </div>
     </div>
 
@@ -94,7 +123,7 @@
         <div class="pt-2 border-t border-slate-800">
           <label class="block text-xs font-medium text-slate-400 mb-1">GitHub Personal Access Token (PAT)</label>
           <input type="password" id="modalToken" placeholder="ghp_xxxxxxxxxxxx" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
-          <p class="text-[11px] text-slate-500 mt-1">Wird nur lokal in deinem Browser gespeichert, um die config.json zu aktualisieren.</p>
+          <p class="text-[11px] text-slate-500 mt-1">Wird nur lokal im Browser gespeichert.</p>
         </div>
 
         <div id="modalStatus" class="text-xs hidden p-2.5 rounded-lg"></div>
@@ -147,18 +176,96 @@
       }
     }
 
+    function findClosestRecord(data, targetTime) {
+      if (data.length < 2) return null;
+      let closest = null;
+      let minDiff = Infinity;
+
+      for (const row of data) {
+        const rowTime = new Date(row.timestamp.replace(' ', 'T')).getTime();
+        const diff = Math.abs(rowTime - targetTime);
+        // Maximal 25% Abweichung vom Suchzeitraum erlauben
+        if (diff < minDiff) {
+          minDiff = diff;
+          closest = row;
+        }
+      }
+      return closest;
+    }
+
+    function formatDelta(current, past, isPrice = true) {
+      if (past == null || current == null || past === 0) return '-';
+      const diff = current - past;
+      const pct = (diff / past) * 100;
+      const sign = diff > 0 ? '+' : '';
+      
+      const pctFormatted = `${sign}${pct.toFixed(1)}%`;
+      const valFormatted = isPrice 
+        ? `${sign}${diff.toFixed(2)} €`
+        : `${sign}${Math.round(diff)} Stk.`;
+
+      const colorClass = diff > 0 
+        ? (isPrice ? 'text-emerald-400' : 'text-emerald-400') 
+        : (diff < 0 ? 'text-rose-400' : 'text-slate-300');
+
+      return `<span class="${colorClass}">${pctFormatted}</span> <span class="text-xs text-slate-400 font-normal">(${valFormatted})</span>`;
+    }
+
     function updateDashboard(productName) {
       const filtered = globalData
         .filter(d => d.product_name === productName)
-        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        .sort((a, b) => new Date(a.timestamp.replace(' ', 'T')) - new Date(b.timestamp.replace(' ', 'T')));
 
       if (filtered.length === 0) return;
 
       const latest = filtered[filtered.length - 1];
-      document.getElementById('statCheapest').textContent = latest.cheapest_1 ? `${latest.cheapest_1.toFixed(2)} €` : '-';
-      document.getElementById('statRobustShip').textContent = latest.avg_robust_shipping ? `${latest.avg_robust_shipping.toFixed(2)} €` : '-';
-      document.getElementById('statMarketShip').textContent = latest.avg_market_shipping ? `${latest.avg_market_shipping.toFixed(2)} €` : '-';
-      document.getElementById('statAvailable').textContent = latest.available_items != null ? `${latest.available_items} Stk.` : '-';
+      const latestTime = new Date(latest.timestamp.replace(' ', 'T')).getTime();
+
+      // 1. All-Time Low (ATL)
+      let atl = Infinity;
+      let atlRow = null;
+      filtered.forEach(r => {
+        const p = r.cheapest_1 || r.avg_robust_shipping;
+        if (p && p < atl) {
+          atl = p;
+          atlRow = r;
+        }
+      });
+
+      if (atlRow) {
+        document.getElementById('statATL').textContent = `${atl.toFixed(2)} €`;
+        document.getElementById('statATLDate').textContent = `am ${atlRow.timestamp.substring(0, 10)}`;
+      } else {
+        document.getElementById('statATL').textContent = '-';
+        document.getElementById('statATLDate').textContent = '-';
+      }
+
+      // Aktueller Bestand
+      document.getElementById('statCurrentAvail').textContent = latest.available_items != null ? `${latest.available_items} Stk.` : '-';
+
+      // 2. Zeiträume: 7 Tage, 30 Tage, 365 Tage
+      const ms7d = 7 * 24 * 60 * 60 * 1000;
+      const ms30d = 30 * 24 * 60 * 60 * 1000;
+      const ms12m = 365 * 24 * 60 * 60 * 1000;
+
+      const row7d = (latestTime - new Date(filtered[0].timestamp.replace(' ', 'T')).getTime() >= ms7d * 0.7) 
+        ? findClosestRecord(filtered, latestTime - ms7d) : null;
+      const row30d = (latestTime - new Date(filtered[0].timestamp.replace(' ', 'T')).getTime() >= ms30d * 0.7) 
+        ? findClosestRecord(filtered, latestTime - ms30d) : null;
+      const row12m = (latestTime - new Date(filtered[0].timestamp.replace(' ', 'T')).getTime() >= ms12m * 0.7) 
+        ? findClosestRecord(filtered, latestTime - ms12m) : null;
+
+      // Preis-Renditen (Basis: avg_robust_shipping)
+      const currentPrice = latest.avg_robust_shipping;
+      document.getElementById('statPrice7d').innerHTML = row7d ? formatDelta(currentPrice, row7d.avg_robust_shipping, true) : '-';
+      document.getElementById('statPrice30d').innerHTML = row30d ? formatDelta(currentPrice, row30d.avg_robust_shipping, true) : '-';
+      document.getElementById('statPrice12m').innerHTML = row12m ? formatDelta(currentPrice, row12m.avg_robust_shipping, true) : '-';
+
+      // Bestands-Änderungen
+      const currentAvail = latest.available_items;
+      document.getElementById('statAvail7d').innerHTML = row7d ? formatDelta(currentAvail, row7d.available_items, false) : '-';
+      document.getElementById('statAvail30d').innerHTML = row30d ? formatDelta(currentAvail, row30d.available_items, false) : '-';
+      document.getElementById('statAvail12m').innerHTML = row12m ? formatDelta(currentAvail, row12m.available_items, false) : '-';
 
       renderChart(filtered);
     }
