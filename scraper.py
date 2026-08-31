@@ -205,7 +205,7 @@ def main():
 
     if os.path.exists(DATA_CSV_PATH):
         df_existing = pd.read_csv(DATA_CSV_PATH)
-        df_combined = pd.concat([df_existing, df_new], ignore_axis=0)
+        df_combined = pd.concat([df_existing, df_new], ignore_index=True)
     else:
         df_combined = df_new
 
