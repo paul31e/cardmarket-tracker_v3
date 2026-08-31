@@ -45,6 +45,10 @@
           <span class="text-base">🥧</span>
           <span>Portfolio Analyse</span>
         </button>
+        <button onclick="switchTab('alerts')" id="navBtn-alerts" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition">
+          <span class="text-base">🔔</span>
+          <span>Preis-Alerts</span>
+        </button>
       </nav>
     </div>
 
@@ -56,7 +60,7 @@
   <!-- ================= HAUPTINHALT ================= -->
   <div class="max-w-6xl mx-auto space-y-4">
     
-    <!-- Top Bar: Auffälliger Navigation Button -->
+    <!-- Top Bar -->
     <header class="flex items-center justify-between gap-3 bg-slate-900 px-4 py-2.5 md:px-5 md:py-3 rounded-xl border border-slate-800 shadow-md relative z-40">
       <div class="flex items-center gap-3">
         <button onclick="toggleSidebar(true)" class="p-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-xl transition flex items-center justify-center shadow-md active:scale-95" title="Menü öffnen">
@@ -67,7 +71,6 @@
         </h1>
       </div>
 
-      <!-- Auth Bereich rechtsbündig -->
       <div id="authContainer">
         <button onclick="openAuthModal()" id="loginBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition flex items-center gap-1.5">
           👤 Anmelden
@@ -81,8 +84,6 @@
 
     <!-- ================= TAB 1: MARKT-TRACKER ================= -->
     <main id="tab-market" class="space-y-4">
-      
-      <!-- Filter Bar: Großes Dropdown links + Artikel hinzufügen rechts -->
       <div class="flex flex-col sm:flex-row sm:items-center gap-2.5 bg-slate-900/70 p-2.5 rounded-xl border border-slate-800">
         <div class="relative flex-1" id="searchDropdownWrapper">
           <button id="dropdownBtn" type="button" onclick="toggleDropdown()" class="w-full bg-slate-800 border border-slate-700 hover:border-slate-600 text-white text-sm md:text-base rounded-xl p-2.5 md:p-3 flex items-center justify-between gap-2 shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none transition">
@@ -101,7 +102,6 @@
         </button>
       </div>
 
-      <!-- KPI Metric Cards: Preis & Renditen -->
       <div>
         <h2 class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5 px-1">Preisentwicklung (Ø Robust inkl. Versand)</h2>
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
@@ -131,7 +131,6 @@
         </div>
       </div>
 
-      <!-- KPI Metric Cards: Bestands-Dynamik -->
       <div>
         <h2 class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5 px-1">Verfügbarkeits-Dynamik (Bestandsänderung)</h2>
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
@@ -161,7 +160,6 @@
         </div>
       </div>
 
-      <!-- Chart Container -->
       <div class="bg-slate-900 p-4 md:p-5 rounded-2xl border border-slate-800 shadow-lg relative">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-3 border-b border-slate-800/80">
           <div>
@@ -210,7 +208,7 @@
             <p class="text-xs text-slate-400 mt-0.5">Trage deine Stückzahlen, Einkaufspreise (EK) und das Kaufdatum ein.</p>
           </div>
           
-          <button onclick="savePortfolioToSupabase()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs md:text-sm font-semibold px-5 py-2 rounded-xl transition flex items-center justify-center gap-1.5 shadow-lg">
+          <button onclick="savePortfolioToSupabase()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs md:text-sm font-semibold px-5 py-2 rounded-xl transition flex items-center gap-1.5 shadow-lg">
             <span>💾</span> Portfolio speichern
           </button>
         </div>
@@ -351,11 +349,7 @@
 
     <!-- ================= TAB 4: PORTFOLIO ANALYSE ================= -->
     <main id="tab-portfolio-analysis" class="hidden space-y-4">
-      
-      <!-- Sektion 1: Großes Kuchendiagramm & Scrollbare Rangliste nach Wert -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        
-        <!-- Kuchendiagramm Links mit Gesamtwert in der Kreismitte -->
         <div class="lg:col-span-6 bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg flex flex-col justify-between">
           <div class="border-b border-slate-800/80 pb-3 mb-2">
             <h2 class="text-base md:text-lg font-bold text-white tracking-tight flex items-center gap-2">
@@ -364,22 +358,17 @@
             <p class="text-[11px] text-slate-500 mt-0.5">Gewichtung der einzelnen Artikel am Gesamtdepotwert</p>
           </div>
 
-          <!-- Donut-Container mit zentriertem Depotwert -->
           <div class="h-[340px] md:h-[370px] w-full relative flex items-center justify-center my-auto">
             <canvas id="pieChart"></canvas>
-            
-            <!-- Kreismitten-Text -->
             <div id="donutCenterLabel" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
               <span class="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Depotwert</span>
               <span class="text-xl md:text-2xl font-black text-emerald-400 mt-0.5" id="donutTotalValText">0.00 €</span>
               <span class="text-[9.5px] text-slate-500">exkl. Versand</span>
             </div>
-
             <div id="pieEmptyState" class="hidden text-xs text-slate-500 text-center">Keine Bestände vorhanden</div>
           </div>
         </div>
 
-        <!-- Scrollbare Rangliste Rechts (Größte Positionen) -->
         <div class="lg:col-span-6 bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg flex flex-col">
           <div class="border-b border-slate-800/80 pb-3 mb-3 flex items-center justify-between">
             <div>
@@ -391,17 +380,11 @@
             <span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700" id="analysisTotalPositionsBadge">0 Pos.</span>
           </div>
 
-          <div class="space-y-2.5 overflow-y-auto max-h-[360px] pr-1.5" id="analysisPositionsList">
-            <!-- Dynamisch via JavaScript befüllt -->
-          </div>
+          <div class="space-y-2.5 overflow-y-auto max-h-[360px] pr-1.5" id="analysisPositionsList"></div>
         </div>
-
       </div>
 
-      <!-- Sektion 2: Leaderboards (Top Performer & Schwächste Performance - beide scrollbar) -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        
-        <!-- 🚀 Top Performer -->
         <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg flex flex-col">
           <div class="border-b border-slate-800/80 pb-3 mb-3 flex items-center justify-between">
             <div>
@@ -411,13 +394,9 @@
               <p class="text-[11px] text-slate-500 mt-0.5">Höchster prozentualer Gewinn seit Kauf</p>
             </div>
           </div>
-
-          <div class="space-y-2.5 overflow-y-auto max-h-[320px] pr-1.5" id="analysisTopWinnersList">
-            <!-- Dynamisch -->
-          </div>
+          <div class="space-y-2.5 overflow-y-auto max-h-[320px] pr-1.5" id="analysisTopWinnersList"></div>
         </div>
 
-        <!-- 🔻 Schwächste Performance -->
         <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg flex flex-col">
           <div class="border-b border-slate-800/80 pb-3 mb-3 flex items-center justify-between">
             <div>
@@ -427,14 +406,117 @@
               <p class="text-[11px] text-slate-500 mt-0.5">Niedrigste Rendite / Größter Kursrückgang</p>
             </div>
           </div>
+          <div class="space-y-2.5 overflow-y-auto max-h-[320px] pr-1.5" id="analysisTopLosersList"></div>
+        </div>
+      </div>
+    </main>
 
-          <div class="space-y-2.5 overflow-y-auto max-h-[320px] pr-1.5" id="analysisTopLosersList">
-            <!-- Dynamisch -->
+    <!-- ================= TAB 5: PREIS-ALERTS ================= -->
+    <main id="tab-alerts" class="hidden space-y-4">
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
+        <div class="border-b border-slate-800 pb-3 mb-4 flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+              <span>🔔</span> Preis-Alert erstellen
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Erhalte sofort eine Telegram-Nachricht, sobald ein Wunschkurs erreicht wird.</p>
           </div>
+          <span class="text-xs font-semibold px-3 py-1 rounded-lg bg-indigo-950/80 text-indigo-300 border border-indigo-700">Telegram Bot</span>
         </div>
 
+        <form id="createAlertForm" onsubmit="handleCreateAlert(event)" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- Artikel-Auswahl -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1.5">1. Artikel auswählen</label>
+              <select id="alertProductSelect" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                <!-- Dynamisch befüllt -->
+              </select>
+            </div>
+
+            <!-- Telegram Chat-ID -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-xs font-medium text-slate-300">2. Deine Telegram Chat-ID</label>
+                <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" class="text-[11px] text-indigo-400 hover:text-indigo-300">Wie finde ich meine ID? ↗</a>
+              </div>
+              <input type="text" id="alertTelegramChatId" required placeholder="z.B. 123456789" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+            </div>
+
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            <!-- Preis-Referenz -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1.5">3. Preis-Durchschnitt</label>
+              <select id="alertMetricType" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                <option value="avg_robust_shipping">Ø Robust (inkl. Versand)</option>
+                <option value="avg_market_shipping">Ø Markt (inkl. Versand)</option>
+                <option value="avg_robust">Ø Robust (ohne Versand)</option>
+                <option value="avg_market">Ø Markt (ohne Versand)</option>
+                <option value="cheapest_1">Absolut günstigstes Angebot (1️⃣)</option>
+              </select>
+            </div>
+
+            <!-- Bedingung & Zielpreis -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1.5">4. Bedingung & Zielpreis (€)</label>
+              <div class="flex gap-2">
+                <select id="alertCondition" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                  <option value="below">≤ unter</option>
+                  <option value="above">≥ über</option>
+                </select>
+                <input type="number" step="0.5" min="1" id="alertTargetPrice" required placeholder="z.B. 110.00" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+              </div>
+            </div>
+
+            <!-- Gültig bis -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1.5">5. Gültig bis</label>
+              <input type="date" id="alertValidUntil" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+            </div>
+
+          </div>
+
+          <div id="alertFormStatus" class="text-xs hidden p-2.5 rounded-lg"></div>
+
+          <div class="flex justify-end pt-2">
+            <button type="submit" id="createAlertSubmitBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs md:text-sm font-semibold px-5 py-2.5 rounded-xl transition flex items-center gap-1.5 shadow-lg">
+              <span>🔔</span> Alert aktivieren
+            </button>
+          </div>
+        </form>
       </div>
 
+      <!-- Liste aktiver Alerts -->
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
+        <div class="border-b border-slate-800 pb-3 mb-3 flex items-center justify-between">
+          <h3 class="text-base font-bold text-white tracking-tight flex items-center gap-2">
+            <span>📋</span> Meine aktiven Alerts
+          </h3>
+          <span class="text-xs font-medium text-slate-400" id="activeAlertsCount">0 aktiv</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-950/80 text-xs uppercase text-slate-400 border-b border-slate-800 select-none">
+              <tr>
+                <th class="p-3 rounded-l-xl">Artikel</th>
+                <th class="p-3">Kriterium</th>
+                <th class="p-3">Zielpreis</th>
+                <th class="p-3">Telegram ID</th>
+                <th class="p-3">Gültig bis</th>
+                <th class="p-3 text-center rounded-r-xl">Aktion</th>
+              </tr>
+            </thead>
+            <tbody id="activeAlertsTableBody" class="divide-y divide-slate-800/60">
+              <!-- Dynamisch via Supabase -->
+            </tbody>
+          </table>
+        </div>
+      </div>
     </main>
 
   </div>
@@ -591,6 +673,8 @@
         updatePortfolioDashboard();
       } else if (tabId === 'portfolio-analysis') {
         renderPortfolioAnalysis();
+      } else if (tabId === 'alerts') {
+        initAlertsTab();
       }
     }
 
@@ -664,6 +748,7 @@
         updateAuthUI();
         if (currentUser) {
           loadUserPortfolio();
+          loadUserAlerts();
         } else {
           userPortfolioMap = JSON.parse(localStorage.getItem('local_user_portfolio') || '{}');
           renderPortfolioTable();
@@ -1043,7 +1128,7 @@
       renderPortfolioChart(filteredPortHistory);
     }
 
-    // ================= TAB 4 LOGIK: PORTFOLIO ANALYSE =================
+    // ================= TAB 4: PORTFOLIO ANALYSE =================
     const COLOR_PALETTE = [
       '#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', 
       '#06b6d4', '#14b8a6', '#f97316', '#3b82f6', '#84cc16', 
@@ -1086,13 +1171,11 @@
 
       document.getElementById('analysisTotalPositionsBadge').textContent = `${activePositions.length} Positionen`;
 
-      // 1. Sortiert nach Wert für Kuchendiagramm & rechte Rangliste
       const sortedByValue = [...activePositions].sort((a, b) => b.total_val - a.total_val);
 
       renderDonutChart(sortedByValue, totalPortfolioValue);
       renderAllocationList(sortedByValue, totalPortfolioValue);
 
-      // 2. Leaderboards nach Rendite (%)
       const sortedByPerformance = [...activePositions].filter(p => p.buy_price > 0).sort((a, b) => b.profit_pct - a.profit_pct);
 
       const topWinners = sortedByPerformance.filter(p => p.profit_pct >= 0);
@@ -1270,6 +1353,149 @@
         `;
         container.appendChild(row);
       });
+    }
+
+    // ================= TAB 5 LOGIK: PREIS-ALERTS =================
+    function initAlertsTab() {
+      // 1. Artikel-Dropdown befüllen
+      const select = document.getElementById('alertProductSelect');
+      select.innerHTML = '';
+      const products = [...new Set(globalData.map(item => item.product_name))].sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
+      products.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = p;
+        select.appendChild(opt);
+      });
+
+      // Gespeicherte Chat-ID laden
+      const savedChatId = localStorage.getItem('tg_chat_id');
+      if (savedChatId) {
+        document.getElementById('alertTelegramChatId').value = savedChatId;
+      }
+
+      // Default-Ablaufdatum auf in 3 Monaten setzen
+      const d = new Date();
+      d.setMonth(d.getMonth() + 3);
+      document.getElementById('alertValidUntil').value = d.toISOString().substring(0, 10);
+
+      loadUserAlerts();
+    }
+
+    async function loadUserAlerts() {
+      const tbody = document.getElementById('activeAlertsTableBody');
+      const countBadge = document.getElementById('activeAlertsCount');
+      tbody.innerHTML = '';
+
+      if (!currentUser || !supabaseClient) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-xs text-slate-500">Bitte melde dich an, um deine aktiven Alerts einzusehen und zu verwalten.</td></tr>`;
+        countBadge.textContent = '0 aktiv';
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from('price_alerts')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error || !data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-xs text-slate-500">Aktuell keine aktiven Alerts hinterlegt.</td></tr>`;
+        countBadge.textContent = '0 aktiv';
+        return;
+      }
+
+      countBadge.textContent = `${data.length} aktiv`;
+
+      const metricLabels = {
+        'avg_robust_shipping': 'Ø Robust (inkl. Versand)',
+        'avg_market_shipping': 'Ø Markt (inkl. Versand)',
+        'avg_robust': 'Ø Robust (ohne Versand)',
+        'avg_market': 'Ø Markt (ohne Versand)',
+        'cheapest_1': 'Günstigster Preis (1️⃣)'
+      };
+
+      data.forEach(alertItem => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-800/40 transition';
+        const condSign = alertItem.trigger_condition === 'above' ? '≥' : '≤';
+        tr.innerHTML = `
+          <td class="p-3 font-medium text-white">${alertItem.product_name}</td>
+          <td class="p-3 text-xs text-slate-400">${metricLabels[alertItem.metric_type] || alertItem.metric_type}</td>
+          <td class="p-3 font-bold text-indigo-400">${condSign} ${parseFloat(alertItem.target_price).toFixed(2)} €</td>
+          <td class="p-3 text-xs text-slate-400">${alertItem.telegram_chat_id}</td>
+          <td class="p-3 text-xs text-slate-300">${formatDateGerman(alertItem.valid_until, false)}</td>
+          <td class="p-3 text-center">
+            <button onclick="deleteAlert('${alertItem.id}')" title="Alert löschen" class="p-1.5 bg-rose-950/60 hover:bg-rose-900 text-rose-300 rounded-lg transition border border-rose-800">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function handleCreateAlert(e) {
+      e.preventDefault();
+      const statusBox = document.getElementById('alertFormStatus');
+      const submitBtn = document.getElementById('createAlertSubmitBtn');
+
+      if (!currentUser || !supabaseClient) {
+        statusBox.textContent = '⚠️ Bitte melde dich zuerst an, um Alerts zu aktivieren!';
+        statusBox.className = 'text-xs p-2.5 rounded-lg bg-amber-950 text-amber-300 border border-amber-800';
+        return;
+      }
+
+      const product_name = document.getElementById('alertProductSelect').value;
+      const telegram_chat_id = document.getElementById('alertTelegramChatId').value.trim();
+      const metric_type = document.getElementById('alertMetricType').value;
+      const trigger_condition = document.getElementById('alertCondition').value;
+      const target_price = parseFloat(document.getElementById('alertTargetPrice').value);
+      const valid_until = document.getElementById('alertValidUntil').value;
+
+      if (!telegram_chat_id) {
+        statusBox.textContent = '⚠️ Bitte gib deine Telegram Chat-ID ein.';
+        statusBox.className = 'text-xs p-2.5 rounded-lg bg-rose-950 text-rose-300 border border-rose-800';
+        return;
+      }
+
+      localStorage.setItem('tg_chat_id', telegram_chat_id);
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Speichere...';
+
+      try {
+        const { error } = await supabaseClient.from('price_alerts').insert([{
+          user_id: currentUser.id,
+          product_name,
+          telegram_chat_id,
+          metric_type,
+          trigger_condition,
+          target_price,
+          valid_until,
+          is_active: true
+        }]);
+
+        if (error) throw error;
+
+        statusBox.textContent = '✅ Preis-Alert erfolgreich aktiviert!';
+        statusBox.className = 'text-xs p-2.5 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-800';
+        document.getElementById('alertTargetPrice').value = '';
+        loadUserAlerts();
+      } catch (err) {
+        statusBox.textContent = `⚠️ Fehler beim Erstellen: ${err.message}`;
+        statusBox.className = 'text-xs p-2.5 rounded-lg bg-rose-950 text-rose-300 border border-rose-800';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>🔔</span> Alert aktivieren';
+      }
+    }
+
+    async function deleteAlert(alertId) {
+      if (!confirm('Möchtest du diesen Alert wirklich löschen?')) return;
+      if (currentUser && supabaseClient) {
+        await supabaseClient.from('price_alerts').delete().eq('id', alertId);
+        loadUserAlerts();
+      }
     }
 
     function roundNum(val, dec) {
