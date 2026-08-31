@@ -15,7 +15,6 @@ FLARESOLVERR_URL = os.environ.get('FLARESOLVERR_URL', 'http://localhost:8191/v1'
 def clean_price(text):
     if not text:
         return None
-    # Filtert Zahlen im deutschen Format (z.B. "1.234,50 €" -> 1234.50)
     match = re.search(r'([\d\.]+,\d{2})', text)
     if match:
         raw = match.group(1).replace('.', '').replace(',', '.')
@@ -29,7 +28,7 @@ def clean_price(text):
 def parse_cardmarket_html(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
 
-    # 1. Verfügbare Gesamtartikel ermitteln
+    # 1. Verfügbare Artikel ermitteln
     available_items = None
     avail_elem = soup.find(string=re.compile(r'Verfügbare Artikel|Available items', re.I))
     if avail_elem:
@@ -43,7 +42,6 @@ def parse_cardmarket_html(html_content):
                 except ValueError:
                     pass
 
-    # Fallback für verfügbare Artikel über Info-Block
     if available_items is None:
         info_boxes = soup.select('.info-list-container dd, .labeled')
         for box in info_boxes:
@@ -55,25 +53,53 @@ def parse_cardmarket_html(html_content):
                 except ValueError:
                     continue
 
-    # 2. Tabellenzeilen / Artikelangebote parsen
-    rows = soup.select('.table-body .row, .article-row')
+    # 2. Eindeutige Artikel-Zeilen finden (verhindert 3-fache Duplikate)
+    rows = soup.select('div.article-row, div[id^="articleRow"], .table-body > .row')
+    if not rows:
+        rows = soup.select('.table-body .row')
+
+    seen_articles = set()
     offers = []
 
     for row in rows:
-        # Preis des Artikels
-        price_elem = row.select_one('.color-primary, .price-container, .col-price')
-        item_price = clean_price(price_elem.get_text()) if price_elem else None
+        # Falls eine Row-ID existiert, Duplikate verhindern
+        row_id = row.get('id')
+        if row_id and row_id in seen_articles:
+            continue
+        if row_id:
+            seen_articles.add(row_id)
 
-        if item_price is None:
+        # A) Artikelpreis extrahieren
+        price_elem = row.select_one('.col-price .color-primary, .col-price, .price-container .color-primary, .color-primary')
+        if not price_elem:
+            continue
+        
+        item_price = clean_price(price_elem.get_text())
+        if item_price is None or item_price <= 0:
             continue
 
-        # Versandkosten ermitteln (Standard: 0.0 wenn nicht ersichtlich / Abholung)
-        shipping_elem = row.select_one('.col-shipping, .shipping-price, .d-none.d-md-inline')
+        # B) Versandkosten extrahieren
+        # Suche nach spezifischen Versand-Tags oder Text mit "+ X,XX €"
         shipping_price = 0.0
-        if shipping_elem:
-            parsed_ship = clean_price(shipping_elem.get_text())
+        
+        # Selektor 1: Klassische Cardmarket-Versandcontainer
+        ship_elem = row.select_one('.col-seller .small, .col-shipping, .shipping-price, span.d-none.d-md-inline')
+        if ship_elem:
+            ship_txt = ship_elem.get_text()
+            parsed_ship = clean_price(ship_txt)
             if parsed_ship is not None:
                 shipping_price = parsed_ship
+        
+        # Fallback: Suche per Regex im gesamten Zeilentext nach "+ X,XX €"
+        if shipping_price == 0.0:
+            row_text = row.get_text()
+            ship_match = re.search(r'\+\s*([\d\.]+,\d{2})\s*€', row_text)
+            if ship_match:
+                raw_ship = ship_match.group(1).replace('.', '').replace(',', '.')
+                try:
+                    shipping_price = float(raw_ship)
+                except ValueError:
+                    pass
 
         total_price = round(item_price + shipping_price, 2)
         offers.append({
@@ -110,23 +136,18 @@ def calculate_metrics(offers, p_type='single'):
     if not offers:
         return {}
 
-    # Sortiert nach Gesamtpreis inkl. Versand
     by_shipping = sorted(offers, key=lambda x: x['total_price'])
-    # Sortiert nach reinem Artikelpreis ohne Versand
     by_item = sorted(offers, key=lambda x: x['item_price'])
 
     ship_totals = [o['total_price'] for o in by_shipping]
     item_totals = [o['item_price'] for o in by_item]
 
-    # Dynamische Durchschnitte je nach Produkttyp (Single vs Case)
     if p_type.lower() == 'case':
-        # Cases haben weniger Angebote: Top 2-5 bzw. Top 10
         robust_ship = ship_totals[1:5] if len(ship_totals) >= 5 else ship_totals[1:] if len(ship_totals) > 1 else ship_totals
         market_ship = ship_totals[:10]
         robust_item = item_totals[1:5] if len(item_totals) >= 5 else item_totals[1:] if len(item_totals) > 1 else item_totals
         market_item = item_totals[:10]
     else:
-        # Singles: Top 3-10 bzw. Top 15
         robust_ship = ship_totals[2:10] if len(ship_totals) >= 10 else ship_totals[2:] if len(ship_totals) > 2 else ship_totals
         market_ship = ship_totals[:15]
         robust_item = item_totals[2:10] if len(item_totals) >= 10 else item_totals[2:] if len(item_totals) > 2 else item_totals
@@ -137,17 +158,16 @@ def calculate_metrics(offers, p_type='single'):
         'avg_market_shipping': round(sum(market_ship) / len(market_ship), 2) if market_ship else None,
         'avg_robust': round(sum(robust_item) / len(robust_item), 2) if robust_item else None,
         'avg_market': round(sum(market_item) / len(market_item), 2) if market_item else None,
-        # Alte Legacy-Keys zur Sicherheit weiterführen
         'cheapest_1': ship_totals[0] if len(ship_totals) > 0 else None,
         'cheapest_2': ship_totals[1] if len(ship_totals) > 1 else None,
         'cheapest_3': ship_totals[2] if len(ship_totals) > 2 else None,
     }
 
-    # Top 20 Einzelpreise inkl. Versand
+    # Top 20 Gesamtpreise (inkl. Versand)
     for i in range(1, 21):
         metrics[f'cheapest_ship_{i}'] = ship_totals[i - 1] if len(ship_totals) >= i else None
 
-    # Top 20 Einzelpreise exkl. Versand
+    # Top 20 Artikelpreise (exkl. Versand)
     for i in range(1, 21):
         metrics[f'cheapest_item_{i}'] = item_totals[i - 1] if len(item_totals) >= i else None
 
@@ -185,6 +205,9 @@ def main():
         available_items, offers = parse_cardmarket_html(html)
         metrics = calculate_metrics(offers, p_type)
 
+        if offers:
+            print(f"   📊 Gefunden: {len(offers)} Angebote | Günstigster: {offers[0]['item_price']}€ + {offers[0]['shipping_price']}€ Versand = {offers[0]['total_price']}€")
+
         row = {
             'timestamp': now_str,
             'product_name': name,
@@ -193,13 +216,12 @@ def main():
             **metrics
         }
         new_rows.append(row)
-        time.sleep(2)  # Kurze Pause zwischen Anfragen
+        time.sleep(2)
 
     if not new_rows:
         print("⚠️ Keine neuen Daten gesammelt.")
         return
 
-    # In CSV anhängen
     os.makedirs(os.path.dirname(DATA_CSV_PATH), exist_ok=True)
     df_new = pd.DataFrame(new_rows)
 
@@ -210,7 +232,7 @@ def main():
         df_combined = df_new
 
     df_combined.to_csv(DATA_CSV_PATH, index=False, encoding='utf-8')
-    print(f"✅ Erfolgreich {len(new_rows)} Produkte mit Top-20-Preisen in {DATA_CSV_PATH} gespeichert.")
+    print(f"✅ Erfolgreich {len(new_rows)} Produkte sauber in {DATA_CSV_PATH} gespeichert.")
 
 
 if __name__ == '__main__':
