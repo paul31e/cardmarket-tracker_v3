@@ -221,11 +221,11 @@ def run_scraper():
             }
 
             # 20 günstigste Preise inkl. Versand
-            for i in range(1, 21):
+            for i in range(1, 31):
                 row_data[f"cheapest_ship_{i}"] = sorted_total_prices[i - 1] if len(sorted_total_prices) >= i else None
 
             # 20 günstigste Preise exkl. Versand
-            for i in range(1, 21):
+            for i in range(1, 31):
                 row_data[f"cheapest_item_{i}"] = sorted_item_prices[i - 1] if len(sorted_item_prices) >= i else None
 
             results.append(row_data)
