@@ -1,8 +1,6 @@
 name: TCG Price Scraper
 
 on:
-  schedule:
-    - cron: '13 6,18 * * *'
   workflow_dispatch:
 
 jobs:
