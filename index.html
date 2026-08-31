@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GiG - Gescraped ist Geil</title>
+  <title>Cardmarket Preis Tracker - GiG</title>
   
   <!-- Tailwind CSS, Chart.js, PapaParse & Supabase JS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -464,14 +464,20 @@
         <form id="createAlertForm" onsubmit="handleCreateAlert(event)" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             
-            <!-- Artikel-Auswahl -->
+            <!-- Artikel-Auswahl mit eigenem suchbaren Dropdown -->
             <div>
-              <div class="flex items-center justify-between mb-1.5">
-                <label class="block text-xs font-medium text-slate-300">1. Artikel auswählen</label>
-                <span class="text-[11px] text-slate-400" id="alertLivePriceLabel">Aktueller Kurs: <b class="text-indigo-400">-</b></span>
+              <label class="block text-xs font-medium text-slate-300 mb-1.5">1. Artikel auswählen</label>
+              <div class="relative" id="alertSearchDropdownWrapper">
+                <button id="alertDropdownBtn" type="button" onclick="toggleAlertDropdown()" class="w-full bg-slate-800 border border-slate-700 hover:border-slate-600 text-white text-sm rounded-xl p-2.5 md:p-3 flex items-center justify-between gap-2 shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none transition">
+                  <span id="alertSelectedProductText" class="truncate font-semibold text-slate-100">Artikel wählen...</span>
+                  <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                
+                <div id="alertDropdownMenu" class="hidden absolute top-full left-0 right-0 mt-1.5 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2.5 space-y-2.5 z-50">
+                  <input type="text" id="alertProductSearchInput" oninput="filterAlertDropdownList()" placeholder="Suchen (z.B. rivals, case)..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 shadow-inner">
+                  <div id="alertDropdownList" class="max-h-[320px] overflow-y-auto space-y-1.5 pr-1.5"></div>
+                </div>
               </div>
-              <select id="alertProductSelect" onchange="updateAlertLivePrice()" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
-              </select>
             </div>
 
             <!-- Telegram Chat-ID mit automatischer Cloud-Speicherung -->
@@ -480,7 +486,7 @@
                 <label class="block text-xs font-medium text-slate-300">2. Deine Telegram Chat-ID</label>
                 <span class="text-[10px] text-emerald-400 hidden" id="chatIdSavedIndicator">✓ Im Account hinterlegt</span>
               </div>
-              <input type="text" id="alertTelegramChatId" required placeholder="z.B. 123456789" onchange="persistTelegramChatId(this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+              <input type="text" id="alertTelegramChatId" required placeholder="z.B. 123456789" onchange="persistTelegramChatId(this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 md:p-3 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
             </div>
 
           </div>
@@ -490,7 +496,7 @@
             <!-- Preis-Referenz -->
             <div>
               <label class="block text-xs font-medium text-slate-300 mb-1.5">3. Preis-Durchschnitt</label>
-              <select id="alertMetricType" onchange="updateAlertLivePrice()" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+              <select id="alertMetricType" onchange="updateAlertLivePrice()" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 md:p-3 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
                 <option value="avg_robust_shipping">Ø Robust (inkl. Versand)</option>
                 <option value="avg_market_shipping">Ø Markt (inkl. Versand)</option>
                 <option value="avg_robust">Ø Robust (ohne Versand)</option>
@@ -503,11 +509,11 @@
             <div>
               <label class="block text-xs font-medium text-slate-300 mb-1.5">4. Bedingung & Zielpreis (€)</label>
               <div class="flex gap-2">
-                <select id="alertCondition" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                <select id="alertCondition" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 md:py-3 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
                   <option value="below">≤ unter</option>
                   <option value="above">≥ über</option>
                 </select>
-                <input type="number" step="0.5" min="1" id="alertTargetPrice" required placeholder="z.B. 110.00" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                <input type="number" step="0.5" min="1" id="alertTargetPrice" required placeholder="z.B. 110.00" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 md:p-3 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
               </div>
             </div>
 
@@ -522,9 +528,18 @@
                   <button type="button" onclick="setValidityPreset('custom')" class="valid-btn px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700">Custom</button>
                 </div>
               </div>
-              <input type="date" id="alertValidUntil" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+              <input type="date" id="alertValidUntil" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 md:p-3 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
             </div>
 
+          </div>
+
+          <!-- Prominente, große Live-Kurs-Anzeige -->
+          <div class="bg-slate-950/90 border border-slate-800 p-3.5 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-sm">🎯</span>
+              <span class="text-xs text-slate-400 font-medium">Aktueller Kurs (<span id="alertSelectedMetricName" class="text-indigo-300">Ø Robust inkl. Versand</span>):</span>
+            </div>
+            <div class="text-lg md:text-xl font-bold text-emerald-400" id="alertLivePriceDisplay">-</div>
           </div>
 
           <div id="alertFormStatus" class="text-xs hidden p-2.5 rounded-lg"></div>
@@ -553,6 +568,7 @@
                 <th class="p-3 rounded-l-xl">Artikel</th>
                 <th class="p-3">Kriterium</th>
                 <th class="p-3">Zielpreis</th>
+                <th class="p-3">Aktueller Kurs</th>
                 <th class="p-3">Telegram ID</th>
                 <th class="p-3">Gültig bis</th>
                 <th class="p-3 text-center rounded-r-xl">Aktion</th>
@@ -656,6 +672,7 @@
     let authIsSignUp = false;
 
     let currentSelectedProduct = "";
+    let alertCurrentSelectedProduct = "";
     let currentTimeRange = "all";
     let portCurrentTimeRange = "all";
     let portLatestTotalValue = 0;
@@ -1404,15 +1421,12 @@
 
     // ================= TAB 5 LOGIK: PREIS-ALERTS =================
     async function initAlertsTab() {
-      const select = document.getElementById('alertProductSelect');
-      select.innerHTML = '';
       const products = [...new Set(globalData.map(item => item.product_name))].sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
-      products.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p;
-        opt.textContent = p;
-        select.appendChild(opt);
-      });
+      renderAlertDropdownItems(products);
+
+      if (products.length > 0 && !alertCurrentSelectedProduct) {
+        selectAlertProduct(products[0]);
+      }
 
       // Chat-ID laden (Supabase oder LocalStorage)
       let chatId = localStorage.getItem('tg_chat_id') || '';
@@ -1433,6 +1447,59 @@
       setValidityPreset(30);
       updateAlertLivePrice();
       loadUserAlerts();
+    }
+
+    // Suchbares Dropdown für Alerts
+    function renderAlertDropdownItems(products) {
+      const listContainer = document.getElementById('alertDropdownList');
+      if (!listContainer) return;
+      listContainer.innerHTML = '';
+
+      if (products.length === 0) {
+        listContainer.innerHTML = '<div class="text-sm text-slate-500 p-3 text-center">Kein Artikel gefunden</div>';
+        return;
+      }
+
+      products.forEach(p => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `w-full text-left px-3.5 py-2.5 rounded-xl text-sm transition flex items-center justify-between ${
+          p === alertCurrentSelectedProduct ? 'bg-indigo-600 text-white font-semibold shadow-md' : 'text-slate-200 hover:bg-slate-800'
+        }`;
+        btn.innerHTML = `<span class="truncate">${p}</span>`;
+        btn.onclick = () => { selectAlertProduct(p); toggleAlertDropdown(false); };
+        listContainer.appendChild(btn);
+      });
+    }
+
+    function filterAlertDropdownList() {
+      const query = document.getElementById('alertProductSearchInput').value.toLowerCase();
+      const products = [...new Set(globalData.map(item => item.product_name))].sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
+      renderAlertDropdownItems(products.filter(p => p.toLowerCase().includes(query)));
+    }
+
+    function toggleAlertDropdown(forceState = null) {
+      const menu = document.getElementById('alertDropdownMenu');
+      const shouldOpen = forceState !== null ? forceState : menu.classList.contains('hidden');
+      if (shouldOpen) {
+        menu.classList.remove('hidden');
+        document.getElementById('alertProductSearchInput').focus();
+      } else {
+        menu.classList.add('hidden');
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      const wrapper = document.getElementById('alertSearchDropdownWrapper');
+      if (wrapper && !wrapper.contains(e.target)) toggleAlertDropdown(false);
+    });
+
+    function selectAlertProduct(productName) {
+      alertCurrentSelectedProduct = productName;
+      document.getElementById('alertSelectedProductText').textContent = productName;
+      document.getElementById('alertProductSearchInput').value = '';
+      filterAlertDropdownList();
+      updateAlertLivePrice();
     }
 
     function persistTelegramChatId(val) {
@@ -1457,7 +1524,6 @@
       d.setDate(d.getDate() + parseInt(days));
       input.value = d.toISOString().substring(0, 10);
 
-      // Aktiven Button markieren
       const buttons = document.querySelectorAll('#validityPresetButtons .valid-btn');
       if (days === 7 && buttons[0]) buttons[0].className = 'valid-btn px-1.5 py-0.5 bg-indigo-600 text-white rounded border border-indigo-500 font-semibold';
       if (days === 14 && buttons[1]) buttons[1].className = 'valid-btn px-1.5 py-0.5 bg-indigo-600 text-white rounded border border-indigo-500 font-semibold';
@@ -1465,12 +1531,23 @@
     }
 
     function updateAlertLivePrice() {
-      const pName = document.getElementById('alertProductSelect').value;
+      const pName = alertCurrentSelectedProduct;
       const metric = document.getElementById('alertMetricType').value;
-      const label = document.getElementById('alertLivePriceLabel');
+      const display = document.getElementById('alertLivePriceDisplay');
+      const metricLabel = document.getElementById('alertSelectedMetricName');
+
+      const metricNames = {
+        'avg_robust_shipping': 'Ø Robust inkl. Versand',
+        'avg_market_shipping': 'Ø Markt inkl. Versand',
+        'avg_robust': 'Ø Robust ohne Versand',
+        'avg_market': 'Ø Markt ohne Versand',
+        'cheapest_1': 'Günstigstes Angebot inkl. Versand'
+      };
+
+      metricLabel.textContent = metricNames[metric] || metric;
 
       if (!pName || globalData.length === 0) {
-        label.innerHTML = `Aktueller Kurs: <b class="text-indigo-400">-</b>`;
+        display.textContent = '-';
         return;
       }
 
@@ -1479,9 +1556,9 @@
 
       if (latest && latest[metric] != null) {
         const val = parseFloat(latest[metric]);
-        label.innerHTML = `Aktueller Kurs: <b class="text-emerald-400 font-bold">${val.toFixed(2)} €</b>`;
+        display.textContent = `${val.toFixed(2)} €`;
       } else {
-        label.innerHTML = `Aktueller Kurs: <b class="text-slate-400">-</b>`;
+        display.textContent = '-';
       }
     }
 
@@ -1491,7 +1568,7 @@
       tbody.innerHTML = '';
 
       if (!currentUser || !supabaseClient) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-xs text-slate-500">Bitte melde dich an, um deine aktiven Alerts einzusehen und zu verwalten.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-xs text-slate-500">Bitte melde dich an, um deine aktiven Alerts einzusehen und zu verwalten.</td></tr>`;
         countBadge.textContent = '0 aktiv';
         return;
       }
@@ -1503,7 +1580,7 @@
         .order('created_at', { ascending: false });
 
       if (error || !data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-xs text-slate-500">Aktuell keine aktiven Alerts hinterlegt.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-xs text-slate-500">Aktuell keine aktiven Alerts hinterlegt.</td></tr>`;
         countBadge.textContent = '0 aktiv';
         return;
       }
@@ -1522,10 +1599,27 @@
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-800/40 transition';
         const condSign = alertItem.trigger_condition === 'above' ? '≥' : '≤';
+
+        // Aktuellen Kurs für dieses Produkt & Metrik live ermitteln
+        const pRows = globalData.filter(d => d.product_name === alertItem.product_name);
+        const latest = pRows[pRows.length - 1];
+        const curVal = (latest && latest[alertItem.metric_type] != null) ? parseFloat(latest[alertItem.metric_type]) : null;
+        
+        let isMet = false;
+        if (curVal !== null) {
+          if (alertItem.trigger_condition === 'below' && curVal <= alertItem.target_price) isMet = true;
+          if (alertItem.trigger_condition === 'above' && curVal >= alertItem.target_price) isMet = true;
+        }
+
+        const curValDisplay = curVal !== null 
+          ? `<span class="${isMet ? 'text-emerald-400 font-bold' : 'text-slate-200 font-medium'}">${curVal.toFixed(2)} € ${isMet ? '🎯' : ''}</span>`
+          : '<span class="text-slate-500">-</span>';
+
         tr.innerHTML = `
           <td class="p-3 font-medium text-white">${alertItem.product_name}</td>
           <td class="p-3 text-xs text-slate-400">${metricLabels[alertItem.metric_type] || alertItem.metric_type}</td>
           <td class="p-3 font-bold text-indigo-400">${condSign} ${parseFloat(alertItem.target_price).toFixed(2)} €</td>
+          <td class="p-3">${curValDisplay}</td>
           <td class="p-3 text-xs text-slate-400 font-mono">${alertItem.telegram_chat_id}</td>
           <td class="p-3 text-xs text-slate-300">${formatDateGerman(alertItem.valid_until, false)}</td>
           <td class="p-3 text-center">
@@ -1549,12 +1643,18 @@
         return;
       }
 
-      const product_name = document.getElementById('alertProductSelect').value;
+      const product_name = alertCurrentSelectedProduct;
       const telegram_chat_id = document.getElementById('alertTelegramChatId').value.trim();
       const metric_type = document.getElementById('alertMetricType').value;
       const trigger_condition = document.getElementById('alertCondition').value;
       const target_price = parseFloat(document.getElementById('alertTargetPrice').value);
       const valid_until = document.getElementById('alertValidUntil').value;
+
+      if (!product_name) {
+        statusBox.textContent = '⚠️ Bitte wähle einen Artikel aus.';
+        statusBox.className = 'text-xs p-2.5 rounded-lg bg-rose-950 text-rose-300 border border-rose-800';
+        return;
+      }
 
       if (!telegram_chat_id) {
         statusBox.textContent = '⚠️ Bitte gib deine Telegram Chat-ID ein.';
