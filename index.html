@@ -355,7 +355,7 @@
       <!-- Sektion 1: Großes Kuchendiagramm & Scrollbare Rangliste nach Wert -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
         
-        <!-- Kuchendiagramm Links -->
+        <!-- Kuchendiagramm Links mit Gesamtwert in der Kreismitte -->
         <div class="lg:col-span-6 bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg flex flex-col justify-between">
           <div class="border-b border-slate-800/80 pb-3 mb-2">
             <h2 class="text-base md:text-lg font-bold text-white tracking-tight flex items-center gap-2">
@@ -364,22 +364,27 @@
             <p class="text-[11px] text-slate-500 mt-0.5">Gewichtung der einzelnen Artikel am Gesamtdepotwert</p>
           </div>
 
+          <!-- Donut-Container mit zentriertem Depotwert -->
           <div class="h-[340px] md:h-[370px] w-full relative flex items-center justify-center my-auto">
             <canvas id="pieChart"></canvas>
-            <div id="pieEmptyState" class="hidden text-xs text-slate-500 text-center">Keine Bestände vorhanden</div>
-          </div>
+            
+            <!-- Kreismitten-Text -->
+            <div id="donutCenterLabel" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+              <span class="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Depotwert</span>
+              <span class="text-xl md:text-2xl font-black text-emerald-400 mt-0.5" id="donutTotalValText">0.00 €</span>
+              <span class="text-[9.5px] text-slate-500">exkl. Versand</span>
+            </div>
 
-          <div class="text-[11px] text-slate-500 text-center pt-2 border-t border-slate-800/50">
-            💡 Klicke auf Legenden-Einträge oder Segmente, um Details zu isolieren.
+            <div id="pieEmptyState" class="hidden text-xs text-slate-500 text-center">Keine Bestände vorhanden</div>
           </div>
         </div>
 
-        <!-- Scrollbare Rangliste Rechts -->
+        <!-- Scrollbare Rangliste Rechts (Größte Positionen) -->
         <div class="lg:col-span-6 bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg flex flex-col">
           <div class="border-b border-slate-800/80 pb-3 mb-3 flex items-center justify-between">
             <div>
               <h2 class="text-base md:text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                <span>🏆</span> Größte Positionen
+                <span>📊</span> Größte Positionen
               </h2>
               <p class="text-[11px] text-slate-500 mt-0.5">Sortiert nach absolutem Gesamtwert im Depot</p>
             </div>
@@ -393,11 +398,11 @@
 
       </div>
 
-      <!-- Sektion 2: Leaderboards (Top Gewinner & Größte Bremsklötze) -->
+      <!-- Sektion 2: Leaderboards (Top Performer & Schwächste Performance - beide scrollbar) -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         
         <!-- 🚀 Top Performer -->
-        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg flex flex-col">
           <div class="border-b border-slate-800/80 pb-3 mb-3 flex items-center justify-between">
             <div>
               <h2 class="text-base font-bold text-emerald-400 tracking-tight flex items-center gap-1.5">
@@ -407,23 +412,23 @@
             </div>
           </div>
 
-          <div class="space-y-2.5" id="analysisTopWinnersList">
+          <div class="space-y-2.5 overflow-y-auto max-h-[320px] pr-1.5" id="analysisTopWinnersList">
             <!-- Dynamisch -->
           </div>
         </div>
 
-        <!-- 🔻 Größte Bremsklötze -->
-        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
+        <!-- 🔻 Schwächste Performance -->
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg flex flex-col">
           <div class="border-b border-slate-800/80 pb-3 mb-3 flex items-center justify-between">
             <div>
               <h2 class="text-base font-bold text-rose-400 tracking-tight flex items-center gap-1.5">
-                <span>🔻</span> Größte Bremsklötze
+                <span>🔻</span> Schwächste Performance
               </h2>
-              <p class="text-[11px] text-slate-500 mt-0.5">Schwächste Rendite / Größter Verlust</p>
+              <p class="text-[11px] text-slate-500 mt-0.5">Niedrigste Rendite / Größter Kursrückgang</p>
             </div>
           </div>
 
-          <div class="space-y-2.5" id="analysisTopLosersList">
+          <div class="space-y-2.5 overflow-y-auto max-h-[320px] pr-1.5" id="analysisTopLosersList">
             <!-- Dynamisch -->
           </div>
         </div>
@@ -1100,13 +1105,20 @@
     function renderDonutChart(items, totalVal) {
       const ctx = document.getElementById('pieChart').getContext('2d');
       const emptyState = document.getElementById('pieEmptyState');
+      const donutCenterLabel = document.getElementById('donutCenterLabel');
+      const donutTotalValText = document.getElementById('donutTotalValText');
 
       if (items.length === 0 || totalVal <= 0) {
         if (pieChartInstance) pieChartInstance.destroy();
         emptyState.classList.remove('hidden');
+        if (donutCenterLabel) donutCenterLabel.classList.add('hidden');
         return;
       }
       emptyState.classList.add('hidden');
+      if (donutCenterLabel) {
+        donutCenterLabel.classList.remove('hidden');
+        donutTotalValText.textContent = `${totalVal.toFixed(2)} €`;
+      }
 
       const labels = items.map(i => i.name);
       const dataValues = items.map(i => i.total_val);
@@ -1131,11 +1143,9 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          cutout: '68%',
+          cutout: '72%',
           plugins: {
-            legend: {
-              display: false // Eigene saubere Scroll-Liste rechts daneben
-            },
+            legend: { display: false },
             tooltip: {
               backgroundColor: '#020617',
               borderColor: '#334155',
@@ -1173,6 +1183,9 @@
       items.forEach((item, idx) => {
         const pct = totalVal > 0 ? ((item.total_val / totalVal) * 100).toFixed(1) : '0.0';
         const color = COLOR_PALETTE[idx % COLOR_PALETTE.length];
+        const sign = item.profit_pct >= 0 ? '+' : '';
+        const perfColor = item.profit_pct >= 0 ? 'text-emerald-400' : 'text-rose-400';
+        const perfFormatted = item.buy_price > 0 ? `<span class="${perfColor} font-semibold">(${sign}${item.profit_pct.toFixed(1)}%)</span>` : '';
 
         const card = document.createElement('div');
         card.className = 'bg-slate-950/70 p-3 rounded-xl border border-slate-800/80 hover:border-slate-700 transition flex items-center justify-between gap-3 shadow-sm';
@@ -1181,7 +1194,7 @@
             <span class="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm" style="background-color: ${color}"></span>
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
-                <h4 class="text-xs font-semibold text-white truncate">${item.name}</h4>
+                <h4 class="text-xs font-semibold text-white truncate cursor-help" title="${item.name}">${item.name}</h4>
                 <span class="text-[9px] uppercase font-semibold px-1.5 py-0.2 rounded-full ${item.type === 'case' ? 'bg-purple-950/80 text-purple-300 border border-purple-800' : 'bg-indigo-950/80 text-indigo-300 border border-indigo-800'}">${item.type}</span>
               </div>
               <div class="flex items-center gap-2 mt-1">
@@ -1195,7 +1208,10 @@
 
           <div class="flex items-center gap-3 shrink-0">
             <div class="text-right">
-              <div class="text-sm font-bold text-emerald-400">${item.total_val.toFixed(2)} €</div>
+              <div class="text-sm font-bold text-emerald-400 flex items-center justify-end gap-1.5">
+                <span>${item.total_val.toFixed(2)} €</span>
+                ${perfFormatted}
+              </div>
               <div class="text-[10px] text-slate-400">Ø EK: ${item.buy_price > 0 ? item.buy_price.toFixed(2) + ' €' : '-'}</div>
             </div>
             <div class="flex items-center gap-1">
@@ -1224,7 +1240,6 @@
       items.forEach((item, index) => {
         const sign = item.profit_pct >= 0 ? '+' : '';
         const colorClass = item.profit_pct >= 0 ? 'text-emerald-400' : 'text-rose-400';
-        const bgBadgeClass = item.profit_pct >= 0 ? 'bg-emerald-950/60 border-emerald-800 text-emerald-300' : 'bg-rose-950/60 border-rose-800 text-rose-300';
 
         const row = document.createElement('div');
         row.className = 'bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 hover:border-slate-700 transition flex items-center justify-between gap-2.5 shadow-sm';
@@ -1232,7 +1247,7 @@
           <div class="flex items-center gap-2.5 min-w-0 flex-1">
             <span class="text-xs font-bold text-slate-500 w-4">${index + 1}.</span>
             <div class="min-w-0 flex-1">
-              <h4 class="text-xs font-semibold text-white truncate">${item.name}</h4>
+              <h4 class="text-xs font-semibold text-white truncate cursor-help" title="${item.name}">${item.name}</h4>
               <div class="text-[10px] text-slate-400 mt-0.5">${item.quantity} Stk. • EK: ${item.buy_price.toFixed(2)} € • Kurs: ${item.current_price.toFixed(2)} €</div>
             </div>
           </div>
@@ -1577,7 +1592,7 @@
       document.getElementById('statPriceATL').innerHTML = rowPriceATL ? `📉 ATL: ${priceATL.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowPriceATL.timestamp, true)})</span>` : '-';
       document.getElementById('statPriceATH').innerHTML = rowPriceATH ? `📈 ATH: ${priceATH.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowPriceATH.timestamp, true)})</span>` : '-';
       document.getElementById('statAvailMin').innerHTML = rowAvailMin ? `📉 ATL: ${availMin} Stk. <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowAvailMin.timestamp, true)})</span>` : '-';
-      document.getElementById('statAvailMax').innerHTML = rowAvailMax ? `📈 ATH: ${availMax} Stk. <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowAvailMax.timestamp, true)})</span>` : '-';
+      document.getElementById('statAvailMax').innerHTML = rowAvailMax ? `📈 ATH: ${availMax} Stk. <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowAvailMin.timestamp, true)})</span>` : '-';
 
       const latestTime = new Date(latest.timestamp.replace(' ', 'T')).getTime();
       const msDay = 24 * 60 * 60 * 1000;
