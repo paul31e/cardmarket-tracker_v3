@@ -206,7 +206,7 @@ def run_scraper():
 
             print(f"Top 3 Gesamt: [{c1_total}€, {c2_total}€, {c3_total}€] | Robust={avg_robust_shipping}€ | Markt={avg_market_shipping}€")
 
-            results.append({
+            row_data = {
                 "timestamp": timestamp,
                 "product_name": p_name,
                 "product_type": p_type,
@@ -218,7 +218,17 @@ def run_scraper():
                 "avg_market": avg_market,
                 "avg_robust_shipping": avg_robust_shipping,
                 "avg_market_shipping": avg_market_shipping
-            })
+            }
+
+            # 20 günstigste Preise inkl. Versand
+            for i in range(1, 21):
+                row_data[f"cheapest_ship_{i}"] = sorted_total_prices[i - 1] if len(sorted_total_prices) >= i else None
+
+            # 20 günstigste Preise exkl. Versand
+            for i in range(1, 21):
+                row_data[f"cheapest_item_{i}"] = sorted_item_prices[i - 1] if len(sorted_item_prices) >= i else None
+
+            results.append(row_data)
 
     os.makedirs("data", exist_ok=True)
     if results:
