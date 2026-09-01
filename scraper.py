@@ -1,4 +1,5 @@
 import os
+import sys
 import re
 import json
 import datetime
@@ -13,19 +14,24 @@ CM_USERNAME = os.environ.get("CM_USERNAME")
 CM_PASSWORD = os.environ.get("CM_PASSWORD")
 
 FLARESOLVERR_URL = "http://localhost:8191/v1"
-SESSION_ID = "cardmarket_session"
+SESSION_ID = "cardmarket_auth_session"
+
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+SUPABASE_URL = "https://nxtpixbuesueouszfocg.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54dHBpeGJ1ZXN1ZW91c3pmb2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDY1NjUsImV4cCI6MjEwMzY4MjU2NX0.MgQqiuqGCACeeR7K7bRw9p6sbjc1lHip60zXXT_bpGc"
+
 
 def parse_price(price_str):
     if not price_str:
         return None
     clean = price_str.replace("€", "").replace("+", "").replace("\xa0", "").strip()
-    clean = clean.replace(".", "")
-    clean = clean.replace(",", ".")
+    clean = clean.replace(".", "").replace(",", ".")
     try:
         val = float(clean)
         return val if val >= 0 else None
     except ValueError:
         return None
+
 
 def init_flaresolverr_session():
     try:
@@ -33,27 +39,33 @@ def init_flaresolverr_session():
     except Exception:
         pass
 
-    print(f"Erstelle FlareSolverr-Session '{SESSION_ID}'...")
+    print(f"🔧 Erstelle frische FlareSolverr-Session '{SESSION_ID}'...")
     res = requests.post(FLARESOLVERR_URL, json={"cmd": "sessions.create", "session": SESSION_ID}, timeout=20)
-    print("Session-Status:", res.json().get("message", "OK"))
+    print("   Session-Status:", res.json().get("message", "OK"))
 
-def login_via_flaresolverr():
+
+def login_and_verify():
     if not CM_USERNAME or not CM_PASSWORD:
-        print("⚠️ Keine Login-Credentials hinterlegt.")
-        return False
+        print("❌ FEHLER: CM_USERNAME oder CM_PASSWORD Umgebungsvariablen fehlen!")
+        sys.exit(1)
 
-    print(f"Rufe Login-Seite ab für Account '{CM_USERNAME}'...")
-    
+    print(f"🔑 Starte Login-Prozess für Benutzer '{CM_USERNAME}'...")
+
+    # 1. Login-Seite aufrufen (Cloudflare lösen & CSRF Token holen)
     get_payload = {
         "cmd": "request.get",
         "url": "https://www.cardmarket.com/de/Pokemon/Login",
         "session": SESSION_ID,
         "maxTimeout": 60000
     }
-    res = requests.post(FLARESOLVERR_URL, json=get_payload, timeout=70).json()
-    html = res.get("solution", {}).get("response", "")
-    soup = BeautifulSoup(html, "html.parser")
+    try:
+        res = requests.post(FLARESOLVERR_URL, json=get_payload, timeout=70).json()
+        html = res.get("solution", {}).get("response", "")
+    except Exception as e:
+        print(f"❌ Fehler beim Laden der Login-Seite: {e}")
+        sys.exit(1)
 
+    soup = BeautifulSoup(html, "html.parser")
     token_input = soup.select_one("input[name='__cmtkn']")
     cmtkn_val = token_input.get("value") if token_input else None
 
@@ -62,9 +74,14 @@ def login_via_flaresolverr():
         if match:
             cmtkn_val = match.group(1)
 
+    if not cmtkn_val:
+        print("❌ CSRF-Token (__cmtkn) konnte nicht von der Login-Seite extrahiert werden.")
+        sys.exit(1)
+
+    # 2. Login POST absenden
     login_data = {
-        "__cmtkn": cmtkn_val if cmtkn_val else "",
-        "referalPage": "/de/Pokemon/Login",
+        "__cmtkn": cmtkn_val,
+        "referalPage": "/de/Pokemon",
         "username": CM_USERNAME,
         "userPassword": CM_PASSWORD
     }
@@ -81,25 +98,45 @@ def login_via_flaresolverr():
         },
         "maxTimeout": 60000
     }
-    
-    print("Sende Login-POST an Cardmarket...")
-    requests.post(FLARESOLVERR_URL, json=post_payload, timeout=70)
-    
+
+    print("   Sende Login-POST an Cardmarket...")
+    try:
+        requests.post(FLARESOLVERR_URL, json=post_payload, timeout=70)
+    except Exception as e:
+        print(f"❌ Login POST Request fehlgeschlagen: {e}")
+        sys.exit(1)
+
+    # 3. Verifikation: Sind wir wirklich eingeloggt?
+    print("🔍 Überprüfe Login-Status auf Cardmarket...")
     verify_payload = {
         "cmd": "request.get",
         "url": "https://www.cardmarket.com/de/Pokemon",
         "session": SESSION_ID,
         "maxTimeout": 60000
     }
-    verify_res = requests.post(FLARESOLVERR_URL, json=verify_payload, timeout=70).json()
-    verify_html = verify_res.get("solution", {}).get("response", "")
+    
+    try:
+        verify_res = requests.post(FLARESOLVERR_URL, json=verify_payload, timeout=70).json()
+        verify_html = verify_res.get("solution", {}).get("response", "")
+    except Exception as e:
+        print(f"❌ Verifikationsabruf fehlgeschlagen: {e}")
+        sys.exit(1)
 
-    if "EINKAUFSWAGEN" in verify_html or (CM_USERNAME and CM_USERNAME.lower() in verify_html.lower()):
-        print("✅ LOGIN-STATUS: ERFOLGREICH EINGELOGGT!")
-        return True
+    # Prüfung auf Authentifizierungsmerkmale
+    is_authenticated = (
+        (CM_USERNAME and CM_USERNAME.lower() in verify_html.lower()) or
+        "Logout" in verify_html or
+        "Abmelden" in verify_html or
+        "user-nav" in verify_html
+    )
+
+    if is_authenticated:
+        print(f"✅ LOGIN ERFOLGREICH BESTÄTIGT! Angemeldet als '{CM_USERNAME}'.")
     else:
-        print("⚠️ Login verarbeitet, prüfe Status auf Produktseite.")
-        return False
+        print("❌ LOGIN FEHLGESCHLAGEN! Weder Benutzername noch Abmelde-Status im HTML gefunden.")
+        print("⚠️ Breche Scraping-Prozess ab, um fehlerhafte Daten ohne Versandkosten zu verhindern.")
+        sys.exit(1)
+
 
 def fetch_html_via_flaresolverr(target_url):
     payload = {
@@ -113,28 +150,126 @@ def fetch_html_via_flaresolverr(target_url):
         data = resp.json()
         if data.get("status") == "ok":
             return data.get("solution", {}).get("response")
+        print(f"   ⚠️ FlareSolverr meldet Status: {data.get('message')}")
         return None
     except Exception as e:
-        print(f"Verbindungsfehler zu FlareSolverr: {e}")
+        print(f"   ❌ Verbindungsfehler zu FlareSolverr: {e}")
         return None
+
 
 def calc_mean(prices):
     if not prices:
         return None
     return round(sum(prices) / len(prices), 2)
 
+
+def send_telegram_alert(chat_id, message):
+    if not TELEGRAM_BOT_TOKEN:
+        return
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": message,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": False
+    }
+    try:
+        requests.post(url, json=payload, timeout=10)
+    except Exception as e:
+        print(f"⚠️ Fehler beim Senden des Telegram-Alerts: {e}")
+
+
+def check_and_trigger_alerts(latest_results, config_products):
+    if not TELEGRAM_BOT_TOKEN:
+        return
+
+    headers = {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": f"Bearer {SUPABASE_ANON_KEY}"
+    }
+    
+    url = f"{SUPABASE_URL}/rest/v1/price_alerts?is_active=eq.true"
+    try:
+        resp = requests.get(url, headers=headers, timeout=15)
+        if resp.status_code != 200:
+            return
+        alerts = resp.json()
+    except Exception:
+        return
+
+    if not alerts:
+        return
+
+    today_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+
+    for a in alerts:
+        p_name = a.get("product_name")
+        chat_id = a.get("telegram_chat_id")
+        metric_key = a.get("metric_type", "avg_robust_shipping")
+        target_price = float(a.get("target_price", 0))
+        condition = a.get("trigger_condition", "below")
+        valid_until = a.get("valid_until", "")
+
+        if valid_until and valid_until < today_str:
+            continue
+
+        res_match = next((r for r in latest_results if r["product_name"] == p_name), None)
+        if not res_match:
+            continue
+
+        current_val = res_match.get(metric_key)
+        if current_val is None:
+            continue
+
+        is_triggered = False
+        if condition == "below" and current_val <= target_price:
+            is_triggered = True
+        elif condition == "above" and current_val >= target_price:
+            is_triggered = True
+
+        if is_triggered:
+            conf_item = next((p for p in config_products if p["name"] == p_name), None)
+            cm_url = conf_item.get("url", "https://www.cardmarket.com") if conf_item else "https://www.cardmarket.com"
+
+            metric_names = {
+                "avg_robust_shipping": "Ø Robust (inkl. Versand)",
+                "avg_market_shipping": "Ø Markt (inkl. Versand)",
+                "avg_robust": "Ø Robust (ohne Versand)",
+                "avg_market": "Ø Markt (ohne Versand)",
+                "cheapest_1": "Günstigstes Angebot (inkl. Versand)"
+            }
+            m_label = metric_names.get(metric_key, metric_key)
+            cond_sym = "≤" if condition == "below" else "≥"
+
+            msg = (
+                f"🚨 <b>PREIS-ALERT: {p_name}</b>\n\n"
+                f"🎯 <b>Zielbedingung:</b> {cond_sym} {target_price:.2f} €\n"
+                f"📉 <b>Aktueller Kurs ({m_label}):</b> <b>{current_val:.2f} €</b>\n\n"
+                f"🛒 <a href='{cm_url}'>Jetzt auf Cardmarket ansehen</a>"
+            )
+
+            print(f"   🚀 Trigger für {p_name} an Telegram-Chat {chat_id}!")
+            send_telegram_alert(chat_id, msg)
+
+
 def run_scraper():
+    if not os.path.exists(CONFIG_PATH):
+        print(f"❌ config.json nicht gefunden: {CONFIG_PATH}")
+        return
+
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = json.load(f)
 
+    # 1. FlareSolverr Session initialisieren & Login erzwingen
     init_flaresolverr_session()
-    login_via_flaresolverr()
+    login_and_verify()
 
-    # UTC-Timestamp
     timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     results = []
+    products = config.get("products", [])
 
-    for item in config["products"]:
+    # 2. Artikel durchgehen
+    for item in products:
         p_name = item["name"]
         p_type = item.get("type", "single").lower()
         p_url = item["url"]
@@ -144,12 +279,12 @@ def run_scraper():
 
         html = fetch_html_via_flaresolverr(p_url)
         if not html:
-            print(f"Konnte {p_name} nicht abrufen.")
+            print(f"⚠️ Konnte {p_name} nicht abrufen.")
             continue
 
         soup = BeautifulSoup(html, "html.parser")
 
-        # 1. Gesamtmenge
+        # Verfügbare Artikel
         avail_items = 0
         for dt in soup.find_all("dt"):
             txt = dt.get_text(strip=True)
@@ -161,12 +296,19 @@ def run_scraper():
                         avail_items = int(digits)
                     break
 
-        # 2. Angebote auslesen
+        # Angebote sauber & eindeutig auslesen
         offer_rows = soup.select("div[id^='articleRow'], .article-row")
         parsed_item_prices = []
         parsed_total_prices = []
+        seen_row_ids = set()
 
         for row in offer_rows:
+            row_id = row.get("id")
+            if row_id and row_id in seen_row_ids:
+                continue
+            if row_id:
+                seen_row_ids.add(row_id)
+
             price_cell = row.select_one(".col-price, .price-container, .font-weight-bold")
             text_to_search = price_cell.get_text(" ", strip=True) if price_cell else row.get_text(" ", strip=True)
             
@@ -176,10 +318,20 @@ def run_scraper():
                 item_price = parse_price(euro_matches[0])
                 if item_price and item_price > 1.0:
                     shipping_cost = 0.0
+                    
+                    # 1. Priorität: Zweiter Euro-Betrag in der Preis-Spalte
                     if len(euro_matches) > 1:
                         parsed_ship = parse_price(euro_matches[1])
                         if parsed_ship is not None:
                             shipping_cost = parsed_ship
+                    else:
+                        # 2. Priorität: Suche im gesamten Zeilentext nach "+ X,XX €"
+                        row_full_text = row.get_text()
+                        ship_match = re.search(r'\+\s*([\d\.]+,\d{2})\s*€', row_full_text)
+                        if ship_match:
+                            parsed_ship = parse_price(ship_match.group(1))
+                            if parsed_ship is not None:
+                                shipping_cost = parsed_ship
                     
                     total_price = round(item_price + shipping_cost, 2)
                     parsed_item_prices.append(item_price)
@@ -204,7 +356,7 @@ def run_scraper():
                 avg_robust_shipping = calc_mean(sorted_total_prices[2:10])
                 avg_market_shipping = calc_mean(sorted_total_prices[:15])
 
-            print(f"Top 3 Gesamt: [{c1_total}€, {c2_total}€, {c3_total}€] | Robust={avg_robust_shipping}€ | Markt={avg_market_shipping}€")
+            print(f"   Top 3 Gesamt: [{c1_total}€, {c2_total}€, {c3_total}€] | Robust={avg_robust_shipping}€ | Markt={avg_market_shipping}€")
 
             row_data = {
                 "timestamp": timestamp,
@@ -220,11 +372,11 @@ def run_scraper():
                 "avg_market_shipping": avg_market_shipping
             }
 
-            # 20 günstigste Preise inkl. Versand
+            # Top 30 inkl. Versand
             for i in range(1, 31):
                 row_data[f"cheapest_ship_{i}"] = sorted_total_prices[i - 1] if len(sorted_total_prices) >= i else None
 
-            # 20 günstigste Preise exkl. Versand
+            # Top 30 exkl. Versand
             for i in range(1, 31):
                 row_data[f"cheapest_item_{i}"] = sorted_item_prices[i - 1] if len(sorted_item_prices) >= i else None
 
@@ -239,7 +391,11 @@ def run_scraper():
             df_combined.to_csv(CSV_PATH, index=False)
         else:
             df_new.to_csv(CSV_PATH, index=False)
-        print("\n=> data/data.csv wurde erfolgreich aktualisiert!")
+        print("\n=> data/data.csv wurde erfolgreich mit 30 Rängen aktualisiert!")
+
+        # Alerts triggern
+        check_and_trigger_alerts(results, products)
+
 
 if __name__ == "__main__":
     run_scraper()
