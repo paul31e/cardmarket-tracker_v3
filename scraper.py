@@ -61,7 +61,6 @@ def login_and_verify():
 
     print(f"🔑 Starte Login-Prozess für Benutzer '{CM_USERNAME}'...")
 
-    # 1. Login-Seite abrufen (Cloudflare lösen & CSRF Token holen)
     get_payload = {
         "cmd": "request.get",
         "url": "https://www.cardmarket.com/de/Pokemon/Login",
@@ -88,7 +87,6 @@ def login_and_verify():
         print("❌ CSRF-Token (__cmtkn) konnte nicht von der Login-Seite extrahiert werden.")
         sys.exit(1)
 
-    # 2. Login POST absenden
     login_data = {
         "__cmtkn": cmtkn_val,
         "referalPage": "/de/Pokemon",
@@ -116,7 +114,6 @@ def login_and_verify():
         print(f"❌ Login POST Request fehlgeschlagen: {e}")
         sys.exit(1)
 
-    # 3. Verifikation: Login-Status im HTML überprüfen
     print("🔍 Überprüfe Login-Status auf Cardmarket...")
     verify_payload = {
         "cmd": "request.get",
@@ -318,7 +315,6 @@ def run_scraper():
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = json.load(f)
 
-    # 1. FlareSolverr Session initialisieren & Login erzwingen
     init_flaresolverr_session()
     login_and_verify()
 
@@ -326,7 +322,6 @@ def run_scraper():
     results = []
     products = config.get("products", [])
 
-    # 2. Artikel durchgehen
     for item in products:
         p_name = item["name"]
         p_type = item.get("type", "single").lower()
@@ -342,7 +337,6 @@ def run_scraper():
 
         soup = BeautifulSoup(html, "html.parser")
 
-        # Verfügbare Artikel
         avail_items = 0
         for dt in soup.find_all("dt"):
             txt = dt.get_text(strip=True)
@@ -354,7 +348,6 @@ def run_scraper():
                         avail_items = int(digits)
                     break
 
-        # Angebote sauber & eindeutig auslesen
         offer_rows = soup.select("div[id^='articleRow'], .article-row")
         parsed_item_prices = []
         parsed_total_prices = []
@@ -377,13 +370,11 @@ def run_scraper():
                 if item_price and item_price > 1.0:
                     shipping_cost = 0.0
                     
-                    # 1. Priorität: Zweiter Euro-Betrag in der Preis-Spalte
                     if len(euro_matches) > 1:
                         parsed_ship = parse_price(euro_matches[1])
                         if parsed_ship is not None:
                             shipping_cost = parsed_ship
                     else:
-                        # 2. Priorität: Suche im gesamten Zeilentext nach "+ X,XX €"
                         row_full_text = row.get_text()
                         ship_match = re.search(r'\+\s*([\d\.]+,\d{2})\s*€', row_full_text)
                         if ship_match:
@@ -403,11 +394,17 @@ def run_scraper():
             c2_total = sorted_total_prices[1] if len(sorted_total_prices) > 1 else None
             c3_total = sorted_total_prices[2] if len(sorted_total_prices) > 2 else None
 
+            # Berechnung nach Produkttyp (inklusive single_rare)
             if p_type == "case":
                 avg_robust = calc_mean(sorted_item_prices[1:5])
                 avg_market = calc_mean(sorted_item_prices[:10])
                 avg_robust_shipping = calc_mean(sorted_total_prices[1:5])
                 avg_market_shipping = calc_mean(sorted_total_prices[:10])
+            elif p_type in ["single_rare", "rare"]:
+                avg_robust = calc_mean(sorted_item_prices[:3])
+                avg_market = calc_mean(sorted_item_prices[:6])
+                avg_robust_shipping = calc_mean(sorted_total_prices[:3])
+                avg_market_shipping = calc_mean(sorted_total_prices[:6])
             else:
                 avg_robust = calc_mean(sorted_item_prices[2:10])
                 avg_market = calc_mean(sorted_item_prices[:15])
@@ -430,11 +427,9 @@ def run_scraper():
                 "avg_market_shipping": avg_market_shipping
             }
 
-            # Top 30 inkl. Versand
             for i in range(1, 31):
                 row_data[f"cheapest_ship_{i}"] = sorted_total_prices[i - 1] if len(sorted_total_prices) >= i else None
 
-            # Top 30 exkl. Versand
             for i in range(1, 31):
                 row_data[f"cheapest_item_{i}"] = sorted_item_prices[i - 1] if len(sorted_item_prices) >= i else None
 
@@ -451,10 +446,7 @@ def run_scraper():
             df_new.to_csv(CSV_PATH, index=False)
         print("\n=> data/data.csv wurde erfolgreich mit 30 Rängen aktualisiert!")
 
-        # 1. Datenqualität prüfen & E-Mail senden, falls Versandkosten fehlen
         verify_scraped_data_quality(results)
-
-        # 2. Reguläre Telegram Preis-Alerts triggern
         check_and_trigger_alerts(results, products)
 
 
