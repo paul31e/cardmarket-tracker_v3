@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GiG - Gescraped ist Geil</title>
+  <title>GiG Cardmarket Preis Tracker</title>
   
+  <!-- Tailwind CSS, Chart.js, PapaParse & Supabase JS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -12,6 +13,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-3 md:p-6 font-sans antialiased overflow-x-hidden">
 
+  <!-- ================= SEITENLEISTE (DRAWER NAVIGATION) ================= -->
   <div id="sidebarBackdrop" onclick="toggleSidebar(false)" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300"></div>
 
   <aside id="sidebarPanel" class="fixed top-0 left-0 bottom-0 w-72 bg-slate-900 border-r border-slate-800 shadow-2xl z-50 transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col justify-between p-5">
@@ -51,19 +53,21 @@
     </div>
 
     <div class="pt-4 border-t border-slate-800 text-[11px] text-slate-500 text-center">
-      GiG - Gescraped ist Geil v3.0
+      GiG - Cardmarket Preis Tracker
     </div>
   </aside>
 
+  <!-- ================= HAUPTINHALT ================= -->
   <div class="max-w-6xl mx-auto space-y-4">
     
+    <!-- Top Bar -->
     <header class="flex items-center justify-between gap-3 bg-slate-900 px-4 py-2.5 md:px-5 md:py-3 rounded-xl border border-slate-800 shadow-md relative z-40">
       <div class="flex items-center gap-3">
         <button onclick="toggleSidebar(true)" class="p-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-xl transition flex items-center justify-center shadow-md active:scale-95" title="Menü öffnen">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
         <h1 class="text-base md:text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
-          📈 GiG - Gescraped ist Geil
+          📈 Cardmarket Preis Tracker
         </h1>
       </div>
 
@@ -78,6 +82,7 @@
       </div>
     </header>
 
+    <!-- ================= TAB 1: MARKT-TRACKER ================= -->
     <main id="tab-market" class="space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center gap-2.5 bg-slate-900/70 p-2.5 rounded-xl border border-slate-800">
         <div class="relative flex-1" id="searchDropdownWrapper">
@@ -158,24 +163,14 @@
       <div class="bg-slate-900 p-4 md:p-5 rounded-2xl border border-slate-800 shadow-lg relative">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-3 border-b border-slate-800/80">
           <div>
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-2">
               <h2 class="text-base md:text-lg font-bold text-white tracking-tight" id="chartProductTitle">-</h2>
-              <span id="chartProductType" class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full"></span>
-              <span id="chartLowStockBadge" class="hidden text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-600 text-amber-300">⚠️ Niedriger Bestand (&lt;50 Stk.)</span>
+              <span id="chartProductType" class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300"></span>
             </div>
             <p class="text-[11px] text-slate-500 mt-0.5">Zeitlicher Verlauf von Preisen und Marktvolumen</p>
           </div>
 
           <div class="flex flex-wrap items-center gap-2.5">
-            <div class="inline-flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-semibold" id="calcModeButtons">
-              <button onclick="setCalcMode('history')" id="calcBtn-history" class="px-2 py-1 rounded-lg bg-indigo-600 text-white shadow-sm transition">Historie</button>
-              <button onclick="setCalcMode('adjusted')" id="calcBtn-adjusted" class="px-2 py-1 rounded-lg text-slate-400 hover:text-white transition" title="Berechnet Tage mit < 50 Bestand auf Ränge 1-3">Bereinigt (&lt;50)</button>
-            </div>
-
-            <button onclick="promoteToRare()" id="btnPromoteToRare" class="hidden text-[11px] font-medium px-2.5 py-1 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 transition">
-              ⚡ Auf 'Rare' umstellen
-            </button>
-
             <div class="inline-flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold" id="timeFilterButtons">
               <button onclick="setTimeRange('7d')" data-range="7d" class="time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">7T</button>
               <button onclick="setTimeRange('30d')" data-range="30d" class="time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white">1M</button>
@@ -186,7 +181,7 @@
             </div>
             
             <a id="chartCmLink" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700/80 hover:border-indigo-500/50 transition shadow-sm w-fit">
-              <span>Cardmarket</span>
+              <span>Auf Cardmarket öffnen</span>
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
             </a>
           </div>
@@ -204,6 +199,7 @@
       </div>
     </main>
 
+    <!-- ================= TAB 2: MEIN BESTAND (INPUT) ================= -->
     <main id="tab-portfolio-input" class="hidden space-y-4">
       <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-3 border-b border-slate-800">
@@ -269,6 +265,7 @@
       </div>
     </main>
 
+    <!-- ================= TAB 3: PORTFOLIO-PERFORMANCE ================= -->
     <main id="tab-portfolio-perf" class="hidden space-y-4">
       <div>
         <h2 class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5 px-1">Portfolio Übersicht & Rendite</h2>
@@ -350,6 +347,7 @@
       </div>
     </main>
 
+    <!-- ================= TAB 4: PORTFOLIO ANALYSE ================= -->
     <main id="tab-portfolio-analysis" class="hidden space-y-4">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
         <div class="lg:col-span-6 bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg flex flex-col justify-between">
@@ -413,7 +411,10 @@
       </div>
     </main>
 
+    <!-- ================= TAB 5: PREIS-ALERTS ================= -->
     <main id="tab-alerts" class="hidden space-y-4">
+      
+      <!-- Tutorial & Setup Kachel -->
       <div class="bg-slate-900/80 border border-indigo-500/30 p-4 rounded-2xl shadow-md">
         <div class="flex items-start justify-between gap-3">
           <div class="flex items-start gap-3">
@@ -448,6 +449,7 @@
         </div>
       </div>
 
+      <!-- Alert Formular Kachel -->
       <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
         <div class="border-b border-slate-800 pb-3 mb-4 flex items-center justify-between">
           <div>
@@ -461,6 +463,8 @@
 
         <form id="createAlertForm" onsubmit="handleCreateAlert(event)" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- Artikel-Auswahl mit eigenem suchbaren Dropdown -->
             <div>
               <label class="block text-xs font-medium text-slate-300 mb-1.5">1. Artikel auswählen</label>
               <div class="relative" id="alertSearchDropdownWrapper">
@@ -476,6 +480,7 @@
               </div>
             </div>
 
+            <!-- Telegram Chat-ID mit automatischer Cloud-Speicherung -->
             <div>
               <div class="flex items-center justify-between mb-1.5">
                 <label class="block text-xs font-medium text-slate-300">2. Deine Telegram Chat-ID</label>
@@ -483,9 +488,12 @@
               </div>
               <input type="text" id="alertTelegramChatId" required placeholder="z.B. 123456789" onchange="persistTelegramChatId(this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 md:p-3 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
             </div>
+
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            <!-- Preis-Referenz -->
             <div>
               <label class="block text-xs font-medium text-slate-300 mb-1.5">3. Preis-Durchschnitt</label>
               <select id="alertMetricType" onchange="updateAlertLivePrice()" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 md:p-3 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
@@ -497,6 +505,7 @@
               </select>
             </div>
 
+            <!-- Bedingung & Zielpreis -->
             <div>
               <label class="block text-xs font-medium text-slate-300 mb-1.5">4. Bedingung & Zielpreis (€)</label>
               <div class="flex gap-2">
@@ -508,6 +517,7 @@
               </div>
             </div>
 
+            <!-- Gültig bis mit Schnellwahl-Buttons -->
             <div>
               <div class="flex items-center justify-between mb-1.5">
                 <label class="block text-xs font-medium text-slate-300">5. Gültig bis</label>
@@ -520,8 +530,10 @@
               </div>
               <input type="date" id="alertValidUntil" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 md:p-3 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
             </div>
+
           </div>
 
+          <!-- Prominente, große Live-Kurs-Anzeige -->
           <div class="bg-slate-950/90 border border-slate-800 p-3.5 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div class="flex items-center gap-2">
               <span class="text-sm">🎯</span>
@@ -540,6 +552,7 @@
         </form>
       </div>
 
+      <!-- Liste aktiver Alerts -->
       <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
         <div class="border-b border-slate-800 pb-3 mb-3 flex items-center justify-between">
           <h3 class="text-base font-bold text-white tracking-tight flex items-center gap-2">
@@ -561,7 +574,8 @@
                 <th class="p-3 text-center rounded-r-xl">Aktion</th>
               </tr>
             </thead>
-            <tbody id="activeAlertsTableBody" class="divide-y divide-slate-800/60"></tbody>
+            <tbody id="activeAlertsTableBody" class="divide-y divide-slate-800/60">
+            </tbody>
           </table>
         </div>
       </div>
@@ -569,6 +583,7 @@
 
   </div>
 
+  <!-- Modal: Supabase Auth -->
   <div id="authModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
       <div class="flex justify-between items-center pb-2 border-b border-slate-800">
@@ -600,6 +615,7 @@
     </div>
   </div>
 
+  <!-- Modal: Artikel hinzufügen (GitHub) -->
   <div id="addModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
       <div class="flex justify-between items-center pb-2 border-b border-slate-800">
@@ -621,8 +637,7 @@
         <div>
           <label class="block text-xs font-medium text-slate-300 mb-1">Typ</label>
           <select id="modalType" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none">
-            <option value="single">Single (Hohe Liquidität, z.B. Display, ETB)</option>
-            <option value="single_rare">Single Rare (Niedrige Liquidität / &lt;50 Stk., z.B. PC ETB, Promo-Box)</option>
+            <option value="single">Single (z.B. Display, ETB, Einzelbox)</option>
             <option value="case">Case (z.B. 6er Display-Karton)</option>
           </select>
         </div>
@@ -660,7 +675,6 @@
     let alertCurrentSelectedProduct = "";
     let currentTimeRange = "all";
     let portCurrentTimeRange = "all";
-    let currentCalcMode = "history"; // 'history' oder 'adjusted'
     let portLatestTotalValue = 0;
 
     let currentSortColumn = "name";
@@ -947,26 +961,6 @@
       renderPortfolioAnalysis();
     }
 
-    // ================= SCHUTZLOGIK: KURS-ERMITTLUNG =================
-    // Wenn Bestand < 50 Stk. und Typ 'single' ist, on-the-fly Rang 1-3 nehmen
-    function getSafeUnitPrice(record, confType = 'single') {
-      if (!record) return 0;
-      const type = (confType || record.product_type || 'single').toLowerCase();
-      const avail = record.available_items;
-
-      // Fallback Schutz wenn single aber unter 50 Stk.
-      if (type === 'single' && avail != null && avail < 50) {
-        const p1 = record.cheapest_item_1;
-        const p2 = record.cheapest_item_2;
-        const p3 = record.cheapest_item_3;
-        const valid = [p1, p2, p3].filter(p => p != null && p > 0);
-        if (valid.length > 0) {
-          return roundNum(valid.reduce((a, b) => a + b, 0) / valid.length, 2);
-        }
-      }
-      return record.avg_robust || 0;
-    }
-
     function renderPortfolioTable() {
       updateSortIcons();
       const tbody = document.getElementById('portfolioTableBody');
@@ -979,9 +973,8 @@
 
         const productRows = globalData.filter(d => d.product_name === pName);
         const latest = productRows[productRows.length - 1];
-        const curMarketPrice = getSafeUnitPrice(latest, pType);
+        const curMarketPrice = latest ? (latest.avg_robust || 0) : 0;
         const totalVal = userItem.quantity * curMarketPrice;
-        const isLowStock = pType === 'single' && latest && latest.available_items != null && latest.available_items < 50;
 
         return {
           name: pName,
@@ -991,8 +984,7 @@
           buy_price: userItem.buy_price,
           buy_date: userItem.buy_date || '',
           current_price: curMarketPrice,
-          total_val: totalVal,
-          is_low_stock: isLowStock
+          total_val: totalVal
         };
       });
 
@@ -1022,22 +1014,10 @@
         const tr = document.createElement('tr');
         tr.dataset.product = item.name;
         tr.className = 'hover:bg-slate-800/40 transition';
-
-        let badgeHtml = '';
-        if (item.type === 'case') {
-          badgeHtml = `<span class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-purple-950 border border-purple-700 text-purple-300">Case</span>`;
-        } else if (item.type === 'single_rare' || item.type === 'rare') {
-          badgeHtml = `<span class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-600 text-amber-300">💎 Rare</span>`;
-        } else {
-          badgeHtml = `<span class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-indigo-950 border border-indigo-700 text-indigo-300">Single</span>`;
-        }
-
-        const warnBadge = item.is_low_stock ? `<span class="ml-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-950/90 border border-amber-600 text-amber-300" title="Bestand < 50 Stk. Berechnet auf Ränge 1-3">⚠️ &lt;50</span>` : '';
-
         tr.innerHTML = `
           <td class="p-3 font-medium text-white">${item.name}</td>
           <td class="p-3">
-            <div class="flex items-center">${badgeHtml}${warnBadge}</div>
+            <span class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full ${item.type === 'case' ? 'bg-purple-950 border border-purple-700 text-purple-300' : 'bg-indigo-950 border border-indigo-700 text-indigo-300'}">${item.type}</span>
           </td>
           <td class="p-3">
             <input type="number" min="0" step="1" value="${item.quantity}" onchange="syncCurrentTableInputsToMap()" class="port-qty-input w-24 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none">
@@ -1081,10 +1061,9 @@
           totalItemsQty += u.quantity;
           totalInvested += (u.quantity * u.buy_price);
 
-          const conf = configProducts.find(p => p.name === pName);
           const productRows = globalData.filter(d => d.product_name === pName);
           const latest = productRows[productRows.length - 1];
-          const curUnitPrice = getSafeUnitPrice(latest, conf ? conf.type : 'single');
+          const curUnitPrice = latest ? (latest.avg_robust || 0) : 0;
           const posVal = u.quantity * curUnitPrice;
           totalCurrentValue += posVal;
 
@@ -1168,12 +1147,9 @@
             if (pointTime >= buyTime) {
               investedAtTs += (u.quantity * u.buy_price);
 
-              const conf = configProducts.find(p => p.name === pName);
               const match = globalData.find(d => d.timestamp === ts && d.product_name === pName);
-              const safeP = getSafeUnitPrice(match, conf ? conf.type : 'single');
-
-              if (safeP > 0) {
-                valueAtTs += (u.quantity * safeP);
+              if (match && match.avg_robust != null && match.avg_robust > 0) {
+                valueAtTs += (u.quantity * match.avg_robust);
               } else {
                 const fScrape = firstScrapes[pName];
                 if (fScrape && fScrape.time > buyTime) {
@@ -1230,14 +1206,15 @@
       Object.keys(userPortfolioMap).forEach(pName => {
         const u = userPortfolioMap[pName];
         if (u && u.quantity > 0) {
-          const conf = configProducts.find(p => p.name === pName) || {};
           const productRows = globalData.filter(d => d.product_name === pName);
           const latest = productRows[productRows.length - 1];
-          const curPrice = getSafeUnitPrice(latest, conf.type || 'single');
+          const curPrice = latest ? (latest.avg_robust || 0) : 0;
           const totalVal = u.quantity * curPrice;
           const totalCost = u.quantity * (u.buy_price || 0);
           const profitEur = totalVal - totalCost;
           const profitPct = totalCost > 0 ? (profitEur / totalCost) * 100 : 0;
+
+          const conf = configProducts.find(p => p.name === pName) || {};
 
           activePositions.push({
             name: pName,
@@ -1357,14 +1334,6 @@
         const perfColor = item.profit_pct >= 0 ? 'text-emerald-400' : 'text-rose-400';
         const perfFormatted = item.buy_price > 0 ? `<span class="${perfColor} font-semibold">(${sign}${item.profit_pct.toFixed(1)}%)</span>` : '';
 
-        let badgeClass = 'bg-indigo-950/80 text-indigo-300 border border-indigo-800';
-        let badgeLabel = item.type;
-        if (item.type === 'case') badgeClass = 'bg-purple-950/80 text-purple-300 border border-purple-800';
-        if (item.type === 'single_rare' || item.type === 'rare') {
-          badgeClass = 'bg-amber-950/80 text-amber-300 border border-amber-600';
-          badgeLabel = '💎 Rare';
-        }
-
         const card = document.createElement('div');
         card.className = 'bg-slate-950/70 p-3 rounded-xl border border-slate-800/80 hover:border-slate-700 transition flex items-center justify-between gap-3 shadow-sm';
         card.innerHTML = `
@@ -1373,7 +1342,7 @@
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
                 <h4 class="text-xs font-semibold text-white truncate cursor-help" title="${item.name}">${item.name}</h4>
-                <span class="text-[9px] uppercase font-semibold px-1.5 py-0.2 rounded-full ${badgeClass}">${badgeLabel}</span>
+                <span class="text-[9px] uppercase font-semibold px-1.5 py-0.2 rounded-full ${item.type === 'case' ? 'bg-purple-950/80 text-purple-300 border border-purple-800' : 'bg-indigo-950/80 text-indigo-300 border border-indigo-800'}">${item.type}</span>
               </div>
               <div class="flex items-center gap-2 mt-1">
                 <div class="w-24 bg-slate-800 rounded-full h-1.5 overflow-hidden">
@@ -1459,6 +1428,7 @@
         selectAlertProduct(products[0]);
       }
 
+      // Chat-ID laden (Supabase oder LocalStorage)
       let chatId = localStorage.getItem('tg_chat_id') || '';
       if (currentUser && supabaseClient) {
         const { data } = await supabaseClient.from('price_alerts').select('telegram_chat_id').eq('user_id', currentUser.id).limit(1);
@@ -1473,11 +1443,13 @@
         document.getElementById('chatIdSavedIndicator').classList.remove('hidden');
       }
 
+      // Default: 30 Tage Preset
       setValidityPreset(30);
       updateAlertLivePrice();
       loadUserAlerts();
     }
 
+    // Suchbares Dropdown für Alerts
     function renderAlertDropdownItems(products) {
       const listContainer = document.getElementById('alertDropdownList');
       if (!listContainer) return;
@@ -1628,6 +1600,7 @@
         tr.className = 'hover:bg-slate-800/40 transition';
         const condSign = alertItem.trigger_condition === 'above' ? '≥' : '≤';
 
+        // Aktuellen Kurs für dieses Produkt & Metrik live ermitteln
         const pRows = globalData.filter(d => d.product_name === alertItem.product_name);
         const latest = pRows[pRows.length - 1];
         const curVal = (latest && latest[alertItem.metric_type] != null) ? parseFloat(latest[alertItem.metric_type]) : null;
@@ -1960,34 +1933,335 @@
       if (currentSelectedProduct) updateDashboard(currentSelectedProduct);
     }
 
-    function setCalcMode(mode) {
-      currentCalcMode = mode;
-      const btnH = document.getElementById('calcBtn-history');
-      const btnA = document.getElementById('calcBtn-adjusted');
-      if (mode === 'history') {
-        btnH.className = 'px-2 py-1 rounded-lg bg-indigo-600 text-white shadow-sm transition';
-        btnA.className = 'px-2 py-1 rounded-lg text-slate-400 hover:text-white transition';
-      } else {
-        btnA.className = 'px-2 py-1 rounded-lg bg-indigo-600 text-white shadow-sm transition';
-        btnH.className = 'px-2 py-1 rounded-lg text-slate-400 hover:text-white transition';
+    function filterDataByTimeRange(data, range) {
+      if (range === 'all' || data.length === 0) return data;
+      const latest = data[data.length - 1];
+      const latestTime = new Date(latest.timestamp.replace(' ', 'T')).getTime();
+      let startTime = 0;
+      const msDay = 24 * 60 * 60 * 1000;
+      if (range === '7d') startTime = latestTime - 7 * msDay;
+      else if (range === '30d') startTime = latestTime - 30 * msDay;
+      else if (range === '6m') startTime = latestTime - 180 * msDay;
+      else if (range === '12m') startTime = latestTime - 365 * msDay;
+      else if (range === 'ytd') {
+        const latestDate = new Date(latest.timestamp.replace(' ', 'T'));
+        startTime = new Date(Date.UTC(latestDate.getUTCFullYear(), 0, 1, 0, 0, 0)).getTime();
       }
-      if (currentSelectedProduct) updateDashboard(currentSelectedProduct);
+      return data.filter(d => new Date(d.timestamp.replace(' ', 'T')).getTime() >= startTime);
     }
 
-    async function promoteToRare() {
-      const token = localStorage.getItem('gh_pat');
+    function findClosestRecord(data, targetTime) {
+      if (data.length < 2) return null;
+      let closest = null, minDiff = Infinity;
+      for (const row of data) {
+        const rowTime = new Date(row.timestamp.replace(' ', 'T')).getTime();
+        const diff = Math.abs(rowTime - targetTime);
+        if (diff < minDiff) { minDiff = diff; closest = row; }
+      }
+      return closest;
+    }
+
+    function formatDelta(current, past, isPrice = true) {
+      if (past == null || current == null || past === 0) return '-';
+      const diff = current - past;
+      const pct = (diff / past) * 100;
+      const sign = diff > 0 ? '+' : '';
+      const pctFormatted = `${sign}${pct.toFixed(1)}%`;
+      const valFormatted = isPrice ? `${sign}${diff.toFixed(2)} €` : `${sign}${Math.round(diff)} Stk.`;
+      const colorClass = diff > 0 ? 'text-emerald-400' : (diff < 0 ? 'text-rose-400' : 'text-slate-300');
+      return `<span class="${colorClass}">${pctFormatted}</span> <span class="text-xs text-slate-300 font-normal ml-0.5">(${valFormatted})</span>`;
+    }
+
+    function updateDashboard(productName) {
+      const allProductData = globalData
+        .filter(d => d.product_name === productName)
+        .sort((a, b) => new Date(a.timestamp.replace(' ', 'T')) - new Date(b.timestamp.replace(' ', 'T')));
+
+      if (allProductData.length === 0) return;
+
+      const latest = allProductData[allProductData.length - 1];
+      const pType = (latest.product_type || 'single').toLowerCase();
+
+      document.getElementById('chartProductTitle').textContent = productName;
+      const badge = document.getElementById('chartProductType');
+      badge.textContent = pType === 'case' ? '📦 Case' : 'Single';
+      badge.className = pType === 'case'
+        ? 'text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-purple-950/80 border border-purple-700 text-purple-300'
+        : 'text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-indigo-950/80 border border-indigo-700 text-indigo-300';
+
+      const confItem = configProducts.find(p => p.name === productName);
+      const linkBtn = document.getElementById('chartCmLink');
+      if (confItem && confItem.url) {
+        linkBtn.href = confItem.url;
+        linkBtn.classList.remove('hidden');
+      } else {
+        linkBtn.classList.add('hidden');
+      }
+
+      const currentPrice = latest.avg_robust_shipping;
+      document.getElementById('statCurrentPrice').textContent = currentPrice ? `${currentPrice.toFixed(2)} €` : '-';
+      document.getElementById('statCurrentAvail').textContent = latest.available_items != null ? `${latest.available_items} Stk.` : '-';
+
+      let priceATL = Infinity, priceATH = -Infinity, rowPriceATL = null, rowPriceATH = null;
+      let availMin = Infinity, availMax = -Infinity, rowAvailMin = null, rowAvailMax = null;
+
+      allProductData.forEach(r => {
+        const p = r.avg_robust_shipping;
+        if (p != null) {
+          if (p < priceATL) { priceATL = p; rowPriceATL = r; }
+          if (p > priceATH) { priceATH = p; rowPriceATH = r; }
+        }
+        const a = r.available_items;
+        if (a != null) {
+          if (a < availMin) { availMin = a; rowAvailMin = r; }
+          if (a > availMax) { availMax = a; rowAvailMax = r; }
+        }
+      });
+
+      document.getElementById('statPriceATL').innerHTML = rowPriceATL ? `📉 ATL: ${priceATL.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowPriceATL.timestamp, true)})</span>` : '-';
+      document.getElementById('statPriceATH').innerHTML = rowPriceATH ? `📈 ATH: ${priceATH.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowPriceATH.timestamp, true)})</span>` : '-';
+      document.getElementById('statAvailMin').innerHTML = rowAvailMin ? `📉 ATL: ${availMin} Stk. <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowAvailMin.timestamp, true)})</span>` : '-';
+      document.getElementById('statAvailMax').innerHTML = rowAvailMax ? `📈 ATH: ${availMax} Stk. <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowAvailMin.timestamp, true)})</span>` : '-';
+
+      const latestTime = new Date(latest.timestamp.replace(' ', 'T')).getTime();
+      const msDay = 24 * 60 * 60 * 1000;
+      const row7d = (latestTime - new Date(allProductData[0].timestamp.replace(' ', 'T')).getTime() >= 7 * msDay * 0.7) ? findClosestRecord(allProductData, latestTime - 7 * msDay) : null;
+      const row30d = (latestTime - new Date(allProductData[0].timestamp.replace(' ', 'T')).getTime() >= 30 * msDay * 0.7) ? findClosestRecord(allProductData, latestTime - 30 * msDay) : null;
+      const row12m = (latestTime - new Date(allProductData[0].timestamp.replace(' ', 'T')).getTime() >= 365 * msDay * 0.7) ? findClosestRecord(allProductData, latestTime - 365 * msDay) : null;
+
+      document.getElementById('statPrice7d').innerHTML = row7d ? formatDelta(currentPrice, row7d.avg_robust_shipping, true) : '-';
+      document.getElementById('statPrice30d').innerHTML = row30d ? formatDelta(currentPrice, row30d.avg_robust_shipping, true) : '-';
+      document.getElementById('statPrice12m').innerHTML = row12m ? formatDelta(currentPrice, row12m.avg_robust_shipping, true) : '-';
+
+      const currentAvail = latest.available_items;
+      document.getElementById('statAvail7d').innerHTML = row7d ? formatDelta(currentAvail, row7d.available_items, false) : '-';
+      document.getElementById('statAvail30d').innerHTML = row30d ? formatDelta(currentAvail, row30d.available_items, false) : '-';
+      document.getElementById('statAvail12m').innerHTML = row12m ? formatDelta(currentAvail, row12m.available_items, false) : '-';
+
+      const chartFilteredData = filterDataByTimeRange(allProductData, currentTimeRange);
+      renderChart(chartFilteredData, pType);
+    }
+
+    function getPointStyling(values) {
+      let minVal = Infinity, maxVal = -Infinity, minIdx = -1, maxIdx = -1;
+      values.forEach((v, idx) => {
+        if (v != null) {
+          if (v < minVal) { minVal = v; minIdx = idx; }
+          if (v > maxVal) { maxVal = v; maxIdx = idx; }
+        }
+      });
+      const radii = values.map((_, idx) => (idx === minIdx || idx === maxIdx) ? 6 : 1.5);
+      const hoverRadii = values.map((_, idx) => (idx === minIdx || idx === maxIdx) ? 8 : 5);
+      const borderColors = values.map((_, idx) => idx === minIdx ? '#f43f5e' : (idx === maxIdx ? '#10b981' : '#ffffff'));
+      const borderWidths = values.map((_, idx) => (idx === minIdx || idx === maxIdx) ? 2.5 : 0);
+      return { radii, hoverRadii, borderColors, borderWidths };
+    }
+
+    function renderChart(data, pType) {
+      const ctx = document.getElementById('priceChart').getContext('2d');
+      const labels = data.map(d => formatDateGerman(d.timestamp, false));
+
+      if (chartInstance) {
+        chartInstance.data.datasets.forEach((ds, i) => {
+          datasetVisibilityState[ds.label] = !chartInstance.isDatasetVisible(i);
+        });
+        chartInstance.destroy();
+      }
+
+      const formulaExplanations = {
+        'Robust (inkl. Versand)': pType === 'case' ? '<b>Ø Robust (inkl. Versand):</b> Mittelwert der Top 2 bis 5 günstigsten Gesamtpreise.' : '<b>Ø Robust (inkl. Versand):</b> Mittelwert der Top 3 bis 10 günstigsten Gesamtpreise.',
+        'Markt (inkl. Versand)': pType === 'case' ? '<b>Ø Markt (inkl. Versand):</b> Mittelwert der Top 10 günstigsten Gesamtpreise.' : '<b>Ø Markt (inkl. Versand):</b> Mittelwert der Top 15 günstigsten Gesamtpreise.',
+        'Robust (ohne Versand)': pType === 'case' ? '<b>Ø Robust (ohne Versand):</b> Mittelwert der reinen Artikelpreise auf Rang 2 bis 5.' : '<b>Ø Robust (ohne Versand):</b> Mittelwert der reinen Artikelpreise auf Rang 3 bis 10.',
+        'Markt (ohne Versand)': pType === 'case' ? '<b>Ø Markt (ohne Versand):</b> Mittelwert der Top 10 reinen Artikelpreise.' : '<b>Ø Markt (ohne Versand):</b> Mittelwert der Top 15 reinen Artikelpreise.',
+        'Verfügbare Menge': '<b>Verfügbare Artikel:</b> Gesamtzahl aller aktuell gelisteten Exemplare.'
+      };
+
+      const pRobustShipData = data.map(d => d.avg_robust_shipping);
+      const pMarketShipData = data.map(d => d.avg_market_shipping);
+      const pRobustData = data.map(d => d.avg_robust);
+      const pMarketData = data.map(d => d.avg_market);
+      const availData = data.map(d => d.available_items);
+
+      const styleRobustShip = getPointStyling(pRobustShipData);
+      const styleMarketShip = getPointStyling(pMarketShipData);
+      const styleRobust = getPointStyling(pRobustData);
+      const styleMarket = getPointStyling(pMarketData);
+      const styleAvail = getPointStyling(availData);
+
+      const datasets = [
+        { label: 'Robust (inkl. Versand)', data: pRobustShipData, borderColor: '#818cf8', backgroundColor: '#818cf8', yAxisID: 'yPrices', tension: 0.3, borderWidth: 3, pointRadius: styleRobustShip.radii, pointHoverRadius: styleRobustShip.hoverRadii, pointBorderColor: styleRobustShip.borderColors, pointBorderWidth: styleRobustShip.borderWidths, hidden: datasetVisibilityState['Robust (inkl. Versand)'] || false },
+        { label: 'Markt (inkl. Versand)', data: pMarketShipData, borderColor: '#c084fc', backgroundColor: '#c084fc', yAxisID: 'yPrices', tension: 0.3, borderWidth: 3, pointRadius: styleMarketShip.radii, pointHoverRadius: styleMarketShip.hoverRadii, pointBorderColor: styleMarketShip.borderColors, pointBorderWidth: styleMarketShip.borderWidths, hidden: datasetVisibilityState['Markt (inkl. Versand)'] || false },
+        { label: 'Robust (ohne Versand)', data: pRobustData, borderColor: '#64748b', backgroundColor: '#64748b', borderDash: [5, 5], yAxisID: 'yPrices', tension: 0.3, borderWidth: 2, pointRadius: styleRobust.radii, pointHoverRadius: styleRobust.hoverRadii, pointBorderColor: styleRobust.borderColors, pointBorderWidth: styleRobust.borderWidths, hidden: datasetVisibilityState['Robust (ohne Versand)'] || false },
+        { label: 'Markt (ohne Versand)', data: pMarketData, borderColor: '#94a3b8', backgroundColor: '#94a3b8', borderDash: [5, 5], yAxisID: 'yPrices', tension: 0.3, borderWidth: 2, pointRadius: styleMarket.radii, pointHoverRadius: styleMarket.hoverRadii, pointBorderColor: styleMarket.borderColors, pointBorderWidth: styleMarket.borderWidths, hidden: datasetVisibilityState['Markt (ohne Versand)'] || false },
+        { label: 'Verfügbare Menge', data: availData, borderColor: '#f59e0b', backgroundColor: '#f59e0b', yAxisID: 'yQuantity', tension: 0.2, borderWidth: 3, pointRadius: styleAvail.radii, pointHoverRadius: styleAvail.hoverRadii, pointBorderColor: styleAvail.borderColors, pointBorderWidth: styleAvail.borderWidths, hidden: datasetVisibilityState['Verfügbare Menge'] || false }
+      ];
+
+      const tooltipBox = document.getElementById('legendTooltip');
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { color: '#cbd5e1', boxWidth: 12, padding: 16, font: { size: 12, weight: '500' } },
+              onHover: function(e, legendItem) {
+                const text = formulaExplanations[legendItem.text];
+                if (text && tooltipBox) {
+                  tooltipBox.innerHTML = text;
+                  tooltipBox.classList.remove('hidden');
+                  tooltipBox.style.left = `${Math.min(e.native.layerX + 15, ctx.canvas.width - 260)}px`;
+                  tooltipBox.style.top = `${Math.max(10, e.native.layerY + 60)}px`;
+                }
+              },
+              onLeave: () => tooltipBox && tooltipBox.classList.add('hidden'),
+              onClick: function(e, legendItem, legend) {
+                const index = legendItem.datasetIndex;
+                const ci = legend.chart;
+                if (ci.isDatasetVisible(index)) { ci.hide(index); legendItem.hidden = true; }
+                else { ci.show(index); legendItem.hidden = false; }
+                datasetVisibilityState[ci.data.datasets[index].label] = !ci.isDatasetVisible(index);
+              }
+            },
+            tooltip: {
+              backgroundColor: '#020617',
+              titleColor: '#f8fafc',
+              bodyColor: '#cbd5e1',
+              borderColor: '#334155',
+              borderWidth: 1,
+              padding: 12,
+              callbacks: {
+                title: function(items) {
+                  const idx = items[0].dataIndex;
+                  const [datePart, timePart] = data[idx].timestamp.split(' ');
+                  return `📅 ${formatDateGerman(datePart, false)} (${timePart.substring(0, 5)} Uhr)`;
+                },
+                label: function(context) {
+                  const label = context.dataset.label || '';
+                  const val = context.parsed.y;
+                  return context.dataset.yAxisID === 'yQuantity' ? `${label}: ${val} Stk.` : `${label}: ${val != null ? val.toFixed(2) : '-'} €`;
+                },
+                afterBody: function(tooltipItems) {
+                  const row = data[tooltipItems[0].dataIndex];
+                  return [
+                    '',
+                    '📦 3 Günstigste Gesamtpreise:',
+                    ` 1️⃣ ${row.cheapest_1 != null ? row.cheapest_1.toFixed(2) + ' €' : '-'}`,
+                    ` 2️⃣ ${row.cheapest_2 != null ? row.cheapest_2.toFixed(2) + ' €' : '-'}`,
+                    ` 3️⃣ ${row.cheapest_3 != null ? row.cheapest_3.toFixed(2) + ' €' : '-'}`
+                  ];
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', maxTicksLimit: 10 } },
+            yPrices: {
+              type: 'linear',
+              position: 'left',
+              grid: { color: '#1e293b' },
+              ticks: { color: '#818cf8', callback: val => val + ' €' },
+              title: { display: true, text: 'Preise (€)', color: '#818cf8' }
+            },
+            yQuantity: {
+              type: 'linear',
+              position: 'right',
+              grid: { drawOnChartArea: false },
+              ticks: { color: '#f59e0b', precision: 0 },
+              title: { display: true, text: 'Bestand (Stück)', color: '#f59e0b' }
+            }
+          }
+        }
+      });
+    }
+
+    function openModal() {
+      document.getElementById('addModal').classList.remove('hidden');
+      document.getElementById('modalToken').value = localStorage.getItem('gh_pat') || '';
+      document.getElementById('modalStatus').className = 'text-xs hidden p-2.5 rounded-lg';
+    }
+
+    function closeModal() {
+      document.getElementById('addModal').classList.add('hidden');
+    }
+
+    async function handleAddProduct(event) {
+      event.preventDefault();
+      const statusBox = document.getElementById('modalStatus');
+      const btn = document.getElementById('submitBtn');
+      const name = document.getElementById('modalName').value.trim();
+      const url = document.getElementById('modalUrl').value.trim();
+      const type = document.getElementById('modalType').value;
+      const token = document.getElementById('modalToken').value.trim();
+
       if (!token) {
-        alert('Bitte trage im Tab "Artikel hinzufügen" zuerst deinen GitHub PAT ein.');
-        openModal();
+        showStatus('Bitte trage deinen GitHub Token ein.', 'error');
         return;
       }
-      if (!confirm(`Möchtest du "${currentSelectedProduct}" in der config.json dauerhaft als "single_rare" einstufen?`)) return;
+      if (!url.startsWith('https://www.cardmarket.com/')) {
+        showStatus('Bitte gültige Cardmarket URL angeben.', 'error');
+        return;
+      }
+
+      localStorage.setItem('gh_pat', token);
+      btn.disabled = true;
+      btn.textContent = 'Speichere...';
 
       try {
         const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${CONFIG_FILE}`;
-        const getRes = await fetch(apiUrl, { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' } });
+        const getRes = await fetch(apiUrl, {
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+        });
         if (!getRes.ok) throw new Error('Konnte config.json nicht laden.');
 
         const fileData = await getRes.json();
         const jsonString = b64_to_utf8(fileData.content.replace(/\s/g, ''));
-        const currentContent = JSON.parse
+        const currentContent = JSON.parse(jsonString);
+
+        if (!currentContent.products || !Array.isArray(currentContent.products)) currentContent.products = [];
+        if (currentContent.products.some(p => p.url === url)) throw new Error('Link wird bereits getrackt!');
+
+        currentContent.products.push({ name, url, type });
+        const putRes = await fetch(apiUrl, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
+          body: JSON.stringify({ message: `Add ${name}`, content: utf8_to_b64(JSON.stringify(currentContent, null, 2)), sha: fileData.sha })
+        });
+        if (!putRes.ok) throw new Error('Fehler beim Speichern in GitHub.');
+
+        showStatus('✅ Erfolgreich hinzugefügt!', 'success');
+        document.getElementById('modalName').value = '';
+        document.getElementById('modalUrl').value = '';
+        setTimeout(() => closeModal(), 2000);
+      } catch (err) {
+        showStatus(`⚠️ ${err.message}`, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Hinzufügen';
+      }
+    }
+
+    function showStatus(text, type) {
+      const box = document.getElementById('modalStatus');
+      box.textContent = text;
+      box.className = type === 'success' 
+        ? 'text-xs p-2.5 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-800' 
+        : 'text-xs p-2.5 rounded-lg bg-rose-950 text-rose-300 border border-rose-800';
+    }
+
+    function utf8_to_b64(str) {
+      return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode('0x' + p1)));
+    }
+
+    function b64_to_utf8(str) {
+      return decodeURIComponent(Array.prototype.map.call(atob(str), (c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+    }
+
+    window.addEventListener('DOMContentLoaded', loadData);
+  </script>
+</body>
+</html>
