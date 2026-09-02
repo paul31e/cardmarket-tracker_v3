@@ -4,8 +4,6 @@ import re
 import json
 import datetime
 import urllib.parse
-import smtplib
-from email.mime.text import MIMEText
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -18,14 +16,6 @@ CM_PASSWORD = os.environ.get("CM_PASSWORD")
 FLARESOLVERR_URL = "http://localhost:8191/v1"
 SESSION_ID = "cardmarket_auth_session"
 
-# E-Mail Konfiguration (SMTP)
-SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
-SMTP_USER = os.environ.get("SMTP_USER")
-SMTP_PASS = os.environ.get("SMTP_PASS")
-ALERT_EMAIL_TO = os.environ.get("ALERT_EMAIL_TO")
-
-# Telegram & Supabase Konfiguration
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 SUPABASE_URL = "https://nxtpixbuesueouszfocg.supabase.co"
 SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54dHBpeGJ1ZXN1ZW91c3pmb2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDY1NjUsImV4cCI6MjEwMzY4MjU2NX0.MgQqiuqGCACeeR7K7bRw9p6sbjc1lHip60zXXT_bpGc"
@@ -61,6 +51,7 @@ def login_and_verify():
 
     print(f"🔑 Starte Login-Prozess für Benutzer '{CM_USERNAME}'...")
 
+    # 1. Login-Seite aufrufen (Cloudflare lösen & CSRF Token holen)
     get_payload = {
         "cmd": "request.get",
         "url": "https://www.cardmarket.com/de/Pokemon/Login",
@@ -87,6 +78,7 @@ def login_and_verify():
         print("❌ CSRF-Token (__cmtkn) konnte nicht von der Login-Seite extrahiert werden.")
         sys.exit(1)
 
+    # 2. Login POST absenden
     login_data = {
         "__cmtkn": cmtkn_val,
         "referalPage": "/de/Pokemon",
@@ -114,6 +106,7 @@ def login_and_verify():
         print(f"❌ Login POST Request fehlgeschlagen: {e}")
         sys.exit(1)
 
+    # 3. Verifikation: Sind wir wirklich eingeloggt?
     print("🔍 Überprüfe Login-Status auf Cardmarket...")
     verify_payload = {
         "cmd": "request.get",
@@ -129,6 +122,7 @@ def login_and_verify():
         print(f"❌ Verifikationsabruf fehlgeschlagen: {e}")
         sys.exit(1)
 
+    # Prüfung auf Authentifizierungsmerkmale
     is_authenticated = (
         (CM_USERNAME and CM_USERNAME.lower() in verify_html.lower()) or
         "Logout" in verify_html or
@@ -167,55 +161,6 @@ def calc_mean(prices):
     if not prices:
         return None
     return round(sum(prices) / len(prices), 2)
-
-
-def send_email_alert(subject, body):
-    if not (SMTP_USER and SMTP_PASS and ALERT_EMAIL_TO):
-        print("ℹ️ Keine SMTP-Zugangsdaten hinterlegt, überspringe E-Mail-Alarm.")
-        return
-
-    try:
-        msg = MIMEText(body, "plain", "utf-8")
-        msg["Subject"] = subject
-        msg["From"] = SMTP_USER
-        msg["To"] = ALERT_EMAIL_TO
-
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASS)
-            server.send_message(msg)
-
-        print(f"📧 Warn-E-Mail erfolgreich an {ALERT_EMAIL_TO} gesendet!")
-    except Exception as e:
-        print(f"⚠️ Fehler beim Senden der Warn-E-Mail: {e}")
-
-
-def verify_scraped_data_quality(latest_rows):
-    corrupted_items = []
-
-    for row in latest_rows:
-        item_price = row.get("cheapest_item_1")
-        ship_price = row.get("cheapest_ship_1")
-        name = row.get("product_name")
-
-        if item_price is not None and ship_price is not None:
-            if item_price == ship_price:
-                corrupted_items.append(f"- {name}: Artikelpreis = {item_price} €, Gesamtpreis = {ship_price} €")
-
-    if corrupted_items:
-        print(f"⚠️ DATENQUALITÄTS-WARNUNG: Bei {len(corrupted_items)} Artikeln fehlen die Versandkosten!")
-        subject = f"🚨 GiG Alert: Fehlende Versandkosten beim Scrape ({len(corrupted_items)} Artikel)"
-        body = (
-            "Hallo,\n\n"
-            "beim letzten Scrape-Durchlauf wurden für folgende Artikel keine Versandkosten addiert "
-            "(cheapest_item_1 == cheapest_ship_1):\n\n"
-            + "\n".join(corrupted_items)
-            + "\n\nBitte prüfe die Login-Session oder Cardmarket-Selektoren.\n\n"
-            "Dein GiG-Tracker"
-        )
-        send_email_alert(subject, body)
-    else:
-        print("✅ Datenqualitäts-Check bestanden: Versandkosten wurden überall korrekt erfasst.")
 
 
 def send_telegram_alert(chat_id, message):
@@ -315,6 +260,7 @@ def run_scraper():
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = json.load(f)
 
+    # 1. FlareSolverr Session initialisieren & Login erzwingen
     init_flaresolverr_session()
     login_and_verify()
 
@@ -322,6 +268,7 @@ def run_scraper():
     results = []
     products = config.get("products", [])
 
+    # 2. Artikel durchgehen
     for item in products:
         p_name = item["name"]
         p_type = item.get("type", "single").lower()
@@ -337,6 +284,7 @@ def run_scraper():
 
         soup = BeautifulSoup(html, "html.parser")
 
+        # Verfügbare Artikel
         avail_items = 0
         for dt in soup.find_all("dt"):
             txt = dt.get_text(strip=True)
@@ -348,6 +296,7 @@ def run_scraper():
                         avail_items = int(digits)
                     break
 
+        # Angebote sauber & eindeutig auslesen
         offer_rows = soup.select("div[id^='articleRow'], .article-row")
         parsed_item_prices = []
         parsed_total_prices = []
@@ -370,11 +319,13 @@ def run_scraper():
                 if item_price and item_price > 1.0:
                     shipping_cost = 0.0
                     
+                    # 1. Priorität: Zweiter Euro-Betrag in der Preis-Spalte
                     if len(euro_matches) > 1:
                         parsed_ship = parse_price(euro_matches[1])
                         if parsed_ship is not None:
                             shipping_cost = parsed_ship
                     else:
+                        # 2. Priorität: Suche im gesamten Zeilentext nach "+ X,XX €"
                         row_full_text = row.get_text()
                         ship_match = re.search(r'\+\s*([\d\.]+,\d{2})\s*€', row_full_text)
                         if ship_match:
@@ -394,17 +345,11 @@ def run_scraper():
             c2_total = sorted_total_prices[1] if len(sorted_total_prices) > 1 else None
             c3_total = sorted_total_prices[2] if len(sorted_total_prices) > 2 else None
 
-            # Berechnung nach Produkttyp (inklusive single_rare)
             if p_type == "case":
                 avg_robust = calc_mean(sorted_item_prices[1:5])
                 avg_market = calc_mean(sorted_item_prices[:10])
                 avg_robust_shipping = calc_mean(sorted_total_prices[1:5])
                 avg_market_shipping = calc_mean(sorted_total_prices[:10])
-            elif p_type in ["single_rare", "rare"]:
-                avg_robust = calc_mean(sorted_item_prices[:3])
-                avg_market = calc_mean(sorted_item_prices[:6])
-                avg_robust_shipping = calc_mean(sorted_total_prices[:3])
-                avg_market_shipping = calc_mean(sorted_total_prices[:6])
             else:
                 avg_robust = calc_mean(sorted_item_prices[2:10])
                 avg_market = calc_mean(sorted_item_prices[:15])
@@ -427,9 +372,11 @@ def run_scraper():
                 "avg_market_shipping": avg_market_shipping
             }
 
+            # Top 30 inkl. Versand
             for i in range(1, 31):
                 row_data[f"cheapest_ship_{i}"] = sorted_total_prices[i - 1] if len(sorted_total_prices) >= i else None
 
+            # Top 30 exkl. Versand
             for i in range(1, 31):
                 row_data[f"cheapest_item_{i}"] = sorted_item_prices[i - 1] if len(sorted_item_prices) >= i else None
 
@@ -446,7 +393,7 @@ def run_scraper():
             df_new.to_csv(CSV_PATH, index=False)
         print("\n=> data/data.csv wurde erfolgreich mit 30 Rängen aktualisiert!")
 
-        verify_scraped_data_quality(results)
+        # Alerts triggern
         check_and_trigger_alerts(results, products)
 
 
