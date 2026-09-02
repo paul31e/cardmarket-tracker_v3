@@ -1045,6 +1045,26 @@
       });
     }
 
+    // Hilfsfunktion: Berechnet Veränderung von ROI-Prozentpunkten und absolutem Reingewinn
+    function formatRoiDelta(curVal, curInvested, pastRow) {
+      if (!pastRow || pastRow.invested === 0 || curInvested === 0) return '-';
+      
+      const curProfit = curVal - curInvested;
+      const curRoi = (curProfit / curInvested) * 100;
+      
+      const pastProfit = pastRow.total_value - pastRow.invested;
+      const pastRoi = pastRow.roi_pct;
+      
+      const diffRoi = curRoi - pastRoi;
+      const diffProfit = curProfit - pastProfit;
+      
+      const signRoi = diffRoi >= 0 ? '+' : '';
+      const signProfit = diffProfit >= 0 ? '+' : '';
+      const colorClass = diffRoi >= 0 ? 'text-emerald-400' : 'text-rose-400';
+
+      return `<span class="${colorClass}">${signRoi}${diffRoi.toFixed(1)}%</span> <span class="text-xs text-slate-300 font-normal ml-0.5">(${signProfit}${diffProfit.toFixed(2)} €)</span>`;
+    }
+
     function updatePortfolioDashboard() {
       let totalCurrentValue = 0;
       let totalInvested = 0;
@@ -1182,10 +1202,12 @@
         const row12m = findClosestPortRecord(portfolioHistory, latestTime - 365 * msDay);
 
         const curVal = totalCurrentValue;
-        document.getElementById('portStatPerf7d').innerHTML = row7d ? formatDelta(curVal, row7d.total_value, true) : '-';
-        document.getElementById('portStatPerf30d').innerHTML = row30d ? formatDelta(curVal, row30d.total_value, true) : '-';
-        document.getElementById('portStatPerf6m').innerHTML = row6m ? formatDelta(curVal, row6m.total_value, true) : '-';
-        document.getElementById('portStatPerf12m').innerHTML = row12m ? formatDelta(curVal, row12m.total_value, true) : '-';
+        const curInv = totalInvested;
+
+        document.getElementById('portStatPerf7d').innerHTML = row7d ? formatRoiDelta(curVal, curInv, row7d) : '-';
+        document.getElementById('portStatPerf30d').innerHTML = row30d ? formatRoiDelta(curVal, curInv, row30d) : '-';
+        document.getElementById('portStatPerf6m').innerHTML = row6m ? formatRoiDelta(curVal, curInv, row6m) : '-';
+        document.getElementById('portStatPerf12m').innerHTML = row12m ? formatRoiDelta(curVal, curInv, row12m) : '-';
       }
 
       const filteredPortHistory = filterPortHistoryByTimeRange(portfolioHistory, portCurrentTimeRange);
@@ -1829,7 +1851,11 @@
               grid: { color: '#1e293b' },
               ticks: {
                 color: '#10b981',
-                callback: val => (val >= 0 ? `+${val}%` : `${val}%`)
+                callback: function(val) {
+                  // Gleitkomma-Ungenauigkeiten (z.B. +40.350000000000001%) sauber auf max. 2 Nachkommastellen runden
+                  const rounded = +Number(val).toFixed(2);
+                  return (rounded >= 0 ? `+${rounded}%` : `${rounded}%`);
+                }
               }
             }
           }
