@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GiG - Cardmarket Tracker</title>
+  <title>GiG - Gescraped ist Geil</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -51,7 +51,7 @@
     </div>
 
     <div class="pt-4 border-t border-slate-800 text-[11px] text-slate-500 text-center">
-      GiG - Cardmarket Preis Tracker
+      GiG - Gescraped ist Geil v3.0
     </div>
   </aside>
 
@@ -63,7 +63,7 @@
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
         <h1 class="text-base md:text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
-          📈 GiG - Cardmarket Preis Tracker
+          📈 GiG - Gescraped ist Geil
         </h1>
       </div>
 
@@ -818,3 +818,1176 @@
         userProfile.classList.remove('hidden');
         document.getElementById('userEmailLabel').textContent = currentUser.email;
         if (warning) warning.classList.add('hidden');
+      } else {
+        loginBtn.classList.remove('hidden');
+        userProfile.classList.add('hidden');
+        if (warning) warning.classList.remove('hidden');
+      }
+    }
+
+    function openAuthModal() {
+      document.getElementById('authModal').classList.remove('hidden');
+      document.getElementById('authStatus').className = 'text-xs hidden p-2.5 rounded-lg';
+    }
+
+    function closeAuthModal() {
+      document.getElementById('authModal').classList.add('hidden');
+    }
+
+    function toggleAuthMode() {
+      authIsSignUp = !authIsSignUp;
+      document.getElementById('authModalTitle').textContent = authIsSignUp ? 'Konto erstellen' : 'Anmelden';
+      document.getElementById('authSubmitBtn').textContent = authIsSignUp ? 'Registrieren' : 'Einloggen';
+      document.getElementById('authToggleText').textContent = authIsSignUp ? 'Bereits ein Konto?' : 'Noch kein Konto?';
+      document.getElementById('authToggleBtn').textContent = authIsSignUp ? 'Jetzt anmelden' : 'Jetzt registrieren';
+      document.getElementById('authStatus').className = 'text-xs hidden p-2.5 rounded-lg';
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      const statusBox = document.getElementById('authStatus');
+
+      try {
+        if (authIsSignUp) {
+          const { error } = await supabaseClient.auth.signUp({ email, password });
+          if (error) throw error;
+          statusBox.textContent = '✅ Registriert! Prüfe ggf. deine E-Mail oder logge dich direkt ein.';
+          statusBox.className = 'text-xs p-2.5 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-800';
+        } else {
+          const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          closeAuthModal();
+        }
+      } catch (err) {
+        statusBox.textContent = `⚠️ ${err.message}`;
+        statusBox.className = 'text-xs p-2.5 rounded-lg bg-rose-950 text-rose-300 border border-rose-800';
+      }
+    }
+
+    async function handleLogout() {
+      if (supabaseClient) {
+        await supabaseClient.auth.signOut();
+      }
+      currentUser = null;
+      updateAuthUI();
+    }
+
+    function syncCurrentTableInputsToMap() {
+      const rows = document.querySelectorAll('#portfolioTableBody tr');
+      rows.forEach(r => {
+        const pName = r.dataset.product;
+        const qInput = r.querySelector('.port-qty-input');
+        const pInput = r.querySelector('.port-price-input');
+        const dInput = r.querySelector('.port-date-input');
+        if (pName && qInput && pInput && dInput) {
+          userPortfolioMap[pName] = {
+            quantity: Math.max(0, parseFloat(qInput.value) || 0),
+            buy_price: Math.max(0, parseFloat(pInput.value) || 0),
+            buy_date: dInput.value || ''
+          };
+        }
+      });
+    }
+
+    async function loadUserPortfolio() {
+      if (currentUser && supabaseClient) {
+        const { data, error } = await supabaseClient
+          .from('user_portfolios')
+          .select('product_name, quantity, buy_price, buy_date');
+
+        if (!error && data) {
+          userPortfolioMap = {};
+          data.forEach(item => {
+            userPortfolioMap[item.product_name] = {
+              quantity: parseFloat(item.quantity) || 0,
+              buy_price: parseFloat(item.buy_price) || 0,
+              buy_date: item.buy_date || ''
+            };
+          });
+        }
+      } else {
+        userPortfolioMap = JSON.parse(localStorage.getItem('local_user_portfolio') || '{}');
+      }
+      renderPortfolioTable();
+      updatePortfolioDashboard();
+      renderPortfolioAnalysis();
+    }
+
+    async function savePortfolioToSupabase() {
+      syncCurrentTableInputsToMap();
+      localStorage.setItem('local_user_portfolio', JSON.stringify(userPortfolioMap));
+
+      if (currentUser && supabaseClient) {
+        const payload = Object.keys(userPortfolioMap).map(pName => ({
+          user_id: currentUser.id,
+          product_name: pName,
+          quantity: userPortfolioMap[pName].quantity,
+          buy_price: userPortfolioMap[pName].buy_price,
+          buy_date: userPortfolioMap[pName].buy_date || null,
+          updated_at: new Date().toISOString()
+        }));
+
+        const { error } = await supabaseClient
+          .from('user_portfolios')
+          .upsert(payload, { onConflict: 'user_id, product_name' });
+
+        if (!error) {
+          alert('✅ Portfolio erfolgreich in der Cloud gespeichert!');
+        } else {
+          alert('⚠️ Fehler beim Speichern in Supabase: ' + error.message);
+        }
+      } else {
+        alert('✅ Portfolio lokal in deinem Browser gespeichert!');
+      }
+
+      renderPortfolioTable();
+      updatePortfolioDashboard();
+      renderPortfolioAnalysis();
+    }
+
+    // ================= SCHUTZLOGIK: KURS-ERMITTLUNG =================
+    // Wenn Bestand < 50 Stk. und Typ 'single' ist, on-the-fly Rang 1-3 nehmen
+    function getSafeUnitPrice(record, confType = 'single') {
+      if (!record) return 0;
+      const type = (confType || record.product_type || 'single').toLowerCase();
+      const avail = record.available_items;
+
+      // Fallback Schutz wenn single aber unter 50 Stk.
+      if (type === 'single' && avail != null && avail < 50) {
+        const p1 = record.cheapest_item_1;
+        const p2 = record.cheapest_item_2;
+        const p3 = record.cheapest_item_3;
+        const valid = [p1, p2, p3].filter(p => p != null && p > 0);
+        if (valid.length > 0) {
+          return roundNum(valid.reduce((a, b) => a + b, 0) / valid.length, 2);
+        }
+      }
+      return record.avg_robust || 0;
+    }
+
+    function renderPortfolioTable() {
+      updateSortIcons();
+      const tbody = document.getElementById('portfolioTableBody');
+      tbody.innerHTML = '';
+
+      let tableData = configProducts.map(item => {
+        const pName = item.name;
+        const pType = (item.type || 'single').toLowerCase();
+        const userItem = userPortfolioMap[pName] || { quantity: 0, buy_price: 0, buy_date: '' };
+
+        const productRows = globalData.filter(d => d.product_name === pName);
+        const latest = productRows[productRows.length - 1];
+        const curMarketPrice = getSafeUnitPrice(latest, pType);
+        const totalVal = userItem.quantity * curMarketPrice;
+        const isLowStock = pType === 'single' && latest && latest.available_items != null && latest.available_items < 50;
+
+        return {
+          name: pName,
+          url: item.url,
+          type: pType,
+          quantity: userItem.quantity,
+          buy_price: userItem.buy_price,
+          buy_date: userItem.buy_date || '',
+          current_price: curMarketPrice,
+          total_val: totalVal,
+          is_low_stock: isLowStock
+        };
+      });
+
+      if (portfolioSearchQuery) {
+        tableData = tableData.filter(item => 
+          item.name.toLowerCase().includes(portfolioSearchQuery) || 
+          item.type.toLowerCase().includes(portfolioSearchQuery)
+        );
+      }
+
+      tableData.sort((a, b) => {
+        let valA = a[currentSortColumn];
+        let valB = b[currentSortColumn];
+
+        if (typeof valA === 'string') {
+          return currentSortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        return currentSortDirection === 'asc' ? (valA - valB) : (valB - valA);
+      });
+
+      if (tableData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-xs text-slate-500">Keine Artikel gefunden für "${portfolioSearchQuery}"</td></tr>`;
+        return;
+      }
+
+      tableData.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.dataset.product = item.name;
+        tr.className = 'hover:bg-slate-800/40 transition';
+
+        let badgeHtml = '';
+        if (item.type === 'case') {
+          badgeHtml = `<span class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-purple-950 border border-purple-700 text-purple-300">Case</span>`;
+        } else if (item.type === 'single_rare' || item.type === 'rare') {
+          badgeHtml = `<span class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-600 text-amber-300">💎 Rare</span>`;
+        } else {
+          badgeHtml = `<span class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-indigo-950 border border-indigo-700 text-indigo-300">Single</span>`;
+        }
+
+        const warnBadge = item.is_low_stock ? `<span class="ml-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-950/90 border border-amber-600 text-amber-300" title="Bestand < 50 Stk. Berechnet auf Ränge 1-3">⚠️ &lt;50</span>` : '';
+
+        tr.innerHTML = `
+          <td class="p-3 font-medium text-white">${item.name}</td>
+          <td class="p-3">
+            <div class="flex items-center">${badgeHtml}${warnBadge}</div>
+          </td>
+          <td class="p-3">
+            <input type="number" min="0" step="1" value="${item.quantity}" onchange="syncCurrentTableInputsToMap()" class="port-qty-input w-24 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none">
+          </td>
+          <td class="p-3">
+            <input type="number" min="0" step="0.5" value="${item.buy_price || ''}" placeholder="0.00" onchange="syncCurrentTableInputsToMap()" class="port-price-input w-28 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none">
+          </td>
+          <td class="p-3">
+            <input type="date" value="${item.buy_date || ''}" onchange="syncCurrentTableInputsToMap()" class="port-date-input bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none">
+          </td>
+          <td class="p-3 text-right font-medium text-slate-300">${item.current_price ? item.current_price.toFixed(2) + ' €' : '-'}</td>
+          <td class="p-3 text-right font-bold text-indigo-400">${item.total_val > 0 ? item.total_val.toFixed(2) + ' €' : '-'}</td>
+          <td class="p-3 text-center">
+            <div class="flex items-center justify-center gap-1.5">
+              <button onclick="goToProductChart('${item.name.replace(/'/g, "\\'")}')" title="Artikel im Graph öffnen" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-400 rounded-lg transition border border-slate-700">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+              </button>
+              <a href="${item.url}" target="_blank" rel="noopener noreferrer" title="Auf Cardmarket öffnen" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition border border-slate-700">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+              </a>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updatePortfolioDashboard() {
+      let totalCurrentValue = 0;
+      let totalInvested = 0;
+      let totalItemsQty = 0;
+      let totalPositionsCount = 0;
+
+      let mostExpensiveItemName = '-';
+      let mostExpensiveItemPrice = 0;
+
+      Object.keys(userPortfolioMap).forEach(pName => {
+        const u = userPortfolioMap[pName];
+        if (u.quantity > 0) {
+          totalPositionsCount++;
+          totalItemsQty += u.quantity;
+          totalInvested += (u.quantity * u.buy_price);
+
+          const conf = configProducts.find(p => p.name === pName);
+          const productRows = globalData.filter(d => d.product_name === pName);
+          const latest = productRows[productRows.length - 1];
+          const curUnitPrice = getSafeUnitPrice(latest, conf ? conf.type : 'single');
+          const posVal = u.quantity * curUnitPrice;
+          totalCurrentValue += posVal;
+
+          if (curUnitPrice > mostExpensiveItemPrice) {
+            mostExpensiveItemPrice = curUnitPrice;
+            mostExpensiveItemName = pName;
+          }
+        }
+      });
+
+      portLatestTotalValue = totalCurrentValue;
+
+      const roiDiff = totalCurrentValue - totalInvested;
+      const roiPct = totalInvested > 0 ? (roiDiff / totalInvested) * 100 : 0;
+      const roiSign = roiDiff >= 0 ? '+' : '';
+
+      document.getElementById('portStatTotalValue').textContent = `${totalCurrentValue.toFixed(2)} €`;
+      document.getElementById('portStatInvested').textContent = `${totalInvested.toFixed(2)} €`;
+      document.getElementById('portStatItemsCount').textContent = `${totalPositionsCount} Pos. / ${totalItemsQty} Stk.`;
+      document.getElementById('portChartCurValBadge').textContent = `${totalCurrentValue.toFixed(2)} €`;
+
+      if (totalInvested > 0) {
+        const roiColor = roiDiff >= 0 ? 'text-emerald-400' : 'text-rose-400';
+        document.getElementById('portStatROI').innerHTML = `<span class="${roiColor}">${roiSign}${roiPct.toFixed(1)}%</span> <span class="text-xs text-slate-300 font-normal">(${roiSign}${roiDiff.toFixed(2)} €)</span>`;
+      } else {
+        document.getElementById('portStatROI').textContent = '-';
+      }
+
+      if (mostExpensiveItemPrice > 0) {
+        document.getElementById('portStatMostExpensive').textContent = mostExpensiveItemName;
+        document.getElementById('portStatMostExpensivePrice').textContent = `${mostExpensiveItemPrice.toFixed(2)} € (Stückpreis)`;
+      } else {
+        document.getElementById('portStatMostExpensive').textContent = '-';
+        document.getElementById('portStatMostExpensivePrice').textContent = '-';
+      }
+
+      const scrapeTimestamps = [...new Set(globalData.map(d => d.timestamp))].sort((a, b) => new Date(a.replace(' ', 'T')) - new Date(b.replace(' ', 'T')));
+      const allDailyTimeline = [];
+
+      let earliestDate = scrapeTimestamps.length > 0 ? new Date(scrapeTimestamps[0].replace(' ', 'T')) : new Date();
+      Object.keys(userPortfolioMap).forEach(pName => {
+        const u = userPortfolioMap[pName];
+        if (u.quantity > 0 && u.buy_date) {
+          const bDate = new Date(u.buy_date + 'T00:00:00');
+          if (bDate < earliestDate) earliestDate = bDate;
+        }
+      });
+
+      const firstScrapes = {};
+      configProducts.forEach(p => {
+        const pRows = globalData.filter(d => d.product_name === p.name && d.avg_robust != null);
+        if (pRows.length > 0) {
+          firstScrapes[p.name] = {
+            time: new Date(pRows[0].timestamp.replace(' ', 'T')).getTime(),
+            price: pRows[0].avg_robust
+          };
+        }
+      });
+
+      const msDay = 24 * 60 * 60 * 1000;
+      const firstScrapeTime = scrapeTimestamps.length > 0 ? new Date(scrapeTimestamps[0].replace(' ', 'T')).getTime() : new Date().getTime();
+      
+      let curT = earliestDate.getTime();
+      while (curT < firstScrapeTime) {
+        const iso = new Date(curT).toISOString().substring(0, 10) + ' 12:00:00';
+        allDailyTimeline.push(iso);
+        curT += msDay;
+      }
+      scrapeTimestamps.forEach(ts => allDailyTimeline.push(ts));
+
+      const portfolioHistory = allDailyTimeline.map(ts => {
+        const pointTime = new Date(ts.replace(' ', 'T')).getTime();
+        let valueAtTs = 0;
+        let investedAtTs = 0;
+
+        Object.keys(userPortfolioMap).forEach(pName => {
+          const u = userPortfolioMap[pName];
+          if (u.quantity > 0) {
+            const buyTime = u.buy_date ? new Date(u.buy_date + 'T00:00:00').getTime() : firstScrapeTime;
+
+            if (pointTime >= buyTime) {
+              investedAtTs += (u.quantity * u.buy_price);
+
+              const conf = configProducts.find(p => p.name === pName);
+              const match = globalData.find(d => d.timestamp === ts && d.product_name === pName);
+              const safeP = getSafeUnitPrice(match, conf ? conf.type : 'single');
+
+              if (safeP > 0) {
+                valueAtTs += (u.quantity * safeP);
+              } else {
+                const fScrape = firstScrapes[pName];
+                if (fScrape && fScrape.time > buyTime) {
+                  const progress = Math.min(1, Math.max(0, (pointTime - buyTime) / (fScrape.time - buyTime)));
+                  const interpolatedPrice = u.buy_price + progress * (fScrape.price - u.buy_price);
+                  valueAtTs += (u.quantity * interpolatedPrice);
+                } else {
+                  valueAtTs += (u.quantity * (u.buy_price || 0));
+                }
+              }
+            }
+          }
+        });
+
+        const pctReturn = investedAtTs > 0 ? ((valueAtTs - investedAtTs) / investedAtTs) * 100 : 0;
+        return {
+          timestamp: ts,
+          total_value: roundNum(valueAtTs, 2),
+          invested: roundNum(investedAtTs, 2),
+          roi_pct: roundNum(pctReturn, 2)
+        };
+      });
+
+      if (portfolioHistory.length > 1) {
+        const latestTime = new Date(portfolioHistory[portfolioHistory.length - 1].timestamp.replace(' ', 'T')).getTime();
+
+        const row7d = findClosestPortRecord(portfolioHistory, latestTime - 7 * msDay);
+        const row30d = findClosestPortRecord(portfolioHistory, latestTime - 30 * msDay);
+        const row6m = findClosestPortRecord(portfolioHistory, latestTime - 180 * msDay);
+        const row12m = findClosestPortRecord(portfolioHistory, latestTime - 365 * msDay);
+
+        const curVal = totalCurrentValue;
+        document.getElementById('portStatPerf7d').innerHTML = row7d ? formatDelta(curVal, row7d.total_value, true) : '-';
+        document.getElementById('portStatPerf30d').innerHTML = row30d ? formatDelta(curVal, row30d.total_value, true) : '-';
+        document.getElementById('portStatPerf6m').innerHTML = row6m ? formatDelta(curVal, row6m.total_value, true) : '-';
+        document.getElementById('portStatPerf12m').innerHTML = row12m ? formatDelta(curVal, row12m.total_value, true) : '-';
+      }
+
+      const filteredPortHistory = filterPortHistoryByTimeRange(portfolioHistory, portCurrentTimeRange);
+      renderPortfolioChart(filteredPortHistory);
+    }
+
+    // ================= TAB 4: PORTFOLIO ANALYSE =================
+    const COLOR_PALETTE = [
+      '#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', 
+      '#06b6d4', '#14b8a6', '#f97316', '#3b82f6', '#84cc16', 
+      '#e11d48', '#a855f7', '#d946ef', '#0ea5e9', '#eab308'
+    ];
+
+    function renderPortfolioAnalysis() {
+      const activePositions = [];
+      let totalPortfolioValue = 0;
+
+      Object.keys(userPortfolioMap).forEach(pName => {
+        const u = userPortfolioMap[pName];
+        if (u && u.quantity > 0) {
+          const conf = configProducts.find(p => p.name === pName) || {};
+          const productRows = globalData.filter(d => d.product_name === pName);
+          const latest = productRows[productRows.length - 1];
+          const curPrice = getSafeUnitPrice(latest, conf.type || 'single');
+          const totalVal = u.quantity * curPrice;
+          const totalCost = u.quantity * (u.buy_price || 0);
+          const profitEur = totalVal - totalCost;
+          const profitPct = totalCost > 0 ? (profitEur / totalCost) * 100 : 0;
+
+          activePositions.push({
+            name: pName,
+            url: conf.url || '#',
+            type: (conf.type || 'single').toLowerCase(),
+            quantity: u.quantity,
+            buy_price: u.buy_price || 0,
+            current_price: curPrice,
+            total_val: totalVal,
+            total_cost: totalCost,
+            profit_eur: profitEur,
+            profit_pct: profitPct
+          });
+
+          totalPortfolioValue += totalVal;
+        }
+      });
+
+      document.getElementById('analysisTotalPositionsBadge').textContent = `${activePositions.length} Positionen`;
+
+      const sortedByValue = [...activePositions].sort((a, b) => b.total_val - a.total_val);
+
+      renderDonutChart(sortedByValue, totalPortfolioValue);
+      renderAllocationList(sortedByValue, totalPortfolioValue);
+
+      const sortedByPerformance = [...activePositions].filter(p => p.buy_price > 0).sort((a, b) => b.profit_pct - a.profit_pct);
+
+      const topWinners = sortedByPerformance.filter(p => p.profit_pct >= 0);
+      const topLosers = [...sortedByPerformance].reverse();
+
+      renderLeaderboard('analysisTopWinnersList', topWinners.length > 0 ? topWinners : sortedByPerformance.slice(0, 5), true);
+      renderLeaderboard('analysisTopLosersList', topLosers.length > 0 ? topLosers : sortedByPerformance.slice(-5), false);
+    }
+
+    function renderDonutChart(items, totalVal) {
+      const ctx = document.getElementById('pieChart').getContext('2d');
+      const emptyState = document.getElementById('pieEmptyState');
+      const donutCenterLabel = document.getElementById('donutCenterLabel');
+      const donutTotalValText = document.getElementById('donutTotalValText');
+
+      if (items.length === 0 || totalVal <= 0) {
+        if (pieChartInstance) pieChartInstance.destroy();
+        emptyState.classList.remove('hidden');
+        if (donutCenterLabel) donutCenterLabel.classList.add('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+      if (donutCenterLabel) {
+        donutCenterLabel.classList.remove('hidden');
+        donutTotalValText.textContent = `${totalVal.toFixed(2)} €`;
+      }
+
+      const labels = items.map(i => i.name);
+      const dataValues = items.map(i => i.total_val);
+      const bgColors = items.map((_, idx) => COLOR_PALETTE[idx % COLOR_PALETTE.length]);
+
+      if (pieChartInstance) {
+        pieChartInstance.destroy();
+      }
+
+      pieChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: dataValues,
+            backgroundColor: bgColors,
+            borderColor: '#0f172a',
+            borderWidth: 2,
+            hoverOffset: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '72%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#020617',
+              borderColor: '#334155',
+              borderWidth: 1.5,
+              padding: 14,
+              cornerRadius: 12,
+              titleFont: { size: 14, weight: 'bold' },
+              titleColor: '#ffffff',
+              bodyFont: { size: 13 },
+              callbacks: {
+                label: function(context) {
+                  const val = context.parsed;
+                  const pct = totalVal > 0 ? ((val / totalVal) * 100).toFixed(1) : 0;
+                  return [
+                    ` Depotwert: ${val.toFixed(2)} €`,
+                    ` Anteil: ${pct} %`
+                  ];
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderAllocationList(items, totalVal) {
+      const container = document.getElementById('analysisPositionsList');
+      container.innerHTML = '';
+
+      if (items.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-xs text-slate-500">Noch keine Positionen im Depot eingetragen.</div>`;
+        return;
+      }
+
+      items.forEach((item, idx) => {
+        const pct = totalVal > 0 ? ((item.total_val / totalVal) * 100).toFixed(1) : '0.0';
+        const color = COLOR_PALETTE[idx % COLOR_PALETTE.length];
+        const sign = item.profit_pct >= 0 ? '+' : '';
+        const perfColor = item.profit_pct >= 0 ? 'text-emerald-400' : 'text-rose-400';
+        const perfFormatted = item.buy_price > 0 ? `<span class="${perfColor} font-semibold">(${sign}${item.profit_pct.toFixed(1)}%)</span>` : '';
+
+        let badgeClass = 'bg-indigo-950/80 text-indigo-300 border border-indigo-800';
+        let badgeLabel = item.type;
+        if (item.type === 'case') badgeClass = 'bg-purple-950/80 text-purple-300 border border-purple-800';
+        if (item.type === 'single_rare' || item.type === 'rare') {
+          badgeClass = 'bg-amber-950/80 text-amber-300 border border-amber-600';
+          badgeLabel = '💎 Rare';
+        }
+
+        const card = document.createElement('div');
+        card.className = 'bg-slate-950/70 p-3 rounded-xl border border-slate-800/80 hover:border-slate-700 transition flex items-center justify-between gap-3 shadow-sm';
+        card.innerHTML = `
+          <div class="flex items-center gap-3 min-w-0 flex-1">
+            <span class="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm" style="background-color: ${color}"></span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <h4 class="text-xs font-semibold text-white truncate cursor-help" title="${item.name}">${item.name}</h4>
+                <span class="text-[9px] uppercase font-semibold px-1.5 py-0.2 rounded-full ${badgeClass}">${badgeLabel}</span>
+              </div>
+              <div class="flex items-center gap-2 mt-1">
+                <div class="w-24 bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                  <div class="h-1.5 rounded-full" style="width: ${pct}%; background-color: ${color}"></div>
+                </div>
+                <span class="text-[11px] text-slate-400 font-medium">${pct}% (${item.quantity} Stk.)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 shrink-0">
+            <div class="text-right">
+              <div class="text-sm font-bold text-emerald-400 flex items-center justify-end gap-1.5">
+                <span>${item.total_val.toFixed(2)} €</span>
+                ${perfFormatted}
+              </div>
+              <div class="text-[10px] text-slate-400">Ø EK: ${item.buy_price > 0 ? item.buy_price.toFixed(2) + ' €' : '-'}</div>
+            </div>
+            <div class="flex items-center gap-1">
+              <button onclick="goToProductChart('${item.name.replace(/'/g, "\\'")}')" title="Artikelchart öffnen" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-400 rounded-lg transition border border-slate-700">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+              </button>
+              <a href="${item.url}" target="_blank" rel="noopener noreferrer" title="Auf Cardmarket öffnen" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition border border-slate-700">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+              </a>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderLeaderboard(containerId, items, isWinner = true) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+
+      if (items.length === 0) {
+        container.innerHTML = `<div class="p-4 text-center text-xs text-slate-500">Keine Daten mit hinterlegtem Einkaufspreis (EK).</div>`;
+        return;
+      }
+
+      items.forEach((item, index) => {
+        const sign = item.profit_pct >= 0 ? '+' : '';
+        const colorClass = item.profit_pct >= 0 ? 'text-emerald-400' : 'text-rose-400';
+
+        const row = document.createElement('div');
+        row.className = 'bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 hover:border-slate-700 transition flex items-center justify-between gap-2.5 shadow-sm';
+        row.innerHTML = `
+          <div class="flex items-center gap-2.5 min-w-0 flex-1">
+            <span class="text-xs font-bold text-slate-500 w-4">${index + 1}.</span>
+            <div class="min-w-0 flex-1">
+              <h4 class="text-xs font-semibold text-white truncate cursor-help" title="${item.name}">${item.name}</h4>
+              <div class="text-[10px] text-slate-400 mt-0.5">${item.quantity} Stk. • EK: ${item.buy_price.toFixed(2)} € • Kurs: ${item.current_price.toFixed(2)} €</div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2.5 shrink-0">
+            <div class="text-right">
+              <div class="text-xs font-bold ${colorClass}">${sign}${item.profit_pct.toFixed(1)}%</div>
+              <div class="text-[10px] text-slate-400 font-medium">(${sign}${item.profit_eur.toFixed(2)} €)</div>
+            </div>
+
+            <div class="flex items-center gap-1">
+              <button onclick="goToProductChart('${item.name.replace(/'/g, "\\'")}')" title="Artikelchart öffnen" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-400 rounded-lg transition border border-slate-700">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+              </button>
+              <a href="${item.url}" target="_blank" rel="noopener noreferrer" title="Auf Cardmarket öffnen" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition border border-slate-700">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+              </a>
+            </div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    // ================= TAB 5 LOGIK: PREIS-ALERTS =================
+    async function initAlertsTab() {
+      const products = [...new Set(globalData.map(item => item.product_name))].sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
+      renderAlertDropdownItems(products);
+
+      if (products.length > 0 && !alertCurrentSelectedProduct) {
+        selectAlertProduct(products[0]);
+      }
+
+      let chatId = localStorage.getItem('tg_chat_id') || '';
+      if (currentUser && supabaseClient) {
+        const { data } = await supabaseClient.from('price_alerts').select('telegram_chat_id').eq('user_id', currentUser.id).limit(1);
+        if (data && data.length > 0 && data[0].telegram_chat_id) {
+          chatId = data[0].telegram_chat_id;
+          localStorage.setItem('tg_chat_id', chatId);
+        }
+      }
+
+      if (chatId) {
+        document.getElementById('alertTelegramChatId').value = chatId;
+        document.getElementById('chatIdSavedIndicator').classList.remove('hidden');
+      }
+
+      setValidityPreset(30);
+      updateAlertLivePrice();
+      loadUserAlerts();
+    }
+
+    function renderAlertDropdownItems(products) {
+      const listContainer = document.getElementById('alertDropdownList');
+      if (!listContainer) return;
+      listContainer.innerHTML = '';
+
+      if (products.length === 0) {
+        listContainer.innerHTML = '<div class="text-sm text-slate-500 p-3 text-center">Kein Artikel gefunden</div>';
+        return;
+      }
+
+      products.forEach(p => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `w-full text-left px-3.5 py-2.5 rounded-xl text-sm transition flex items-center justify-between ${
+          p === alertCurrentSelectedProduct ? 'bg-indigo-600 text-white font-semibold shadow-md' : 'text-slate-200 hover:bg-slate-800'
+        }`;
+        btn.innerHTML = `<span class="truncate">${p}</span>`;
+        btn.onclick = () => { selectAlertProduct(p); toggleAlertDropdown(false); };
+        listContainer.appendChild(btn);
+      });
+    }
+
+    function filterAlertDropdownList() {
+      const query = document.getElementById('alertProductSearchInput').value.toLowerCase();
+      const products = [...new Set(globalData.map(item => item.product_name))].sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
+      renderAlertDropdownItems(products.filter(p => p.toLowerCase().includes(query)));
+    }
+
+    function toggleAlertDropdown(forceState = null) {
+      const menu = document.getElementById('alertDropdownMenu');
+      const shouldOpen = forceState !== null ? forceState : menu.classList.contains('hidden');
+      if (shouldOpen) {
+        menu.classList.remove('hidden');
+        document.getElementById('alertProductSearchInput').focus();
+      } else {
+        menu.classList.add('hidden');
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      const wrapper = document.getElementById('alertSearchDropdownWrapper');
+      if (wrapper && !wrapper.contains(e.target)) toggleAlertDropdown(false);
+    });
+
+    function selectAlertProduct(productName) {
+      alertCurrentSelectedProduct = productName;
+      document.getElementById('alertSelectedProductText').textContent = productName;
+      document.getElementById('alertProductSearchInput').value = '';
+      filterAlertDropdownList();
+      updateAlertLivePrice();
+    }
+
+    function persistTelegramChatId(val) {
+      if (val.trim()) {
+        localStorage.setItem('tg_chat_id', val.trim());
+        document.getElementById('chatIdSavedIndicator').classList.remove('hidden');
+      }
+    }
+
+    function setValidityPreset(days) {
+      document.querySelectorAll('#validityPresetButtons .valid-btn').forEach(btn => {
+        btn.className = 'valid-btn px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700';
+      });
+
+      const input = document.getElementById('alertValidUntil');
+      if (days === 'custom') {
+        input.focus();
+        return;
+      }
+
+      const d = new Date();
+      d.setDate(d.getDate() + parseInt(days));
+      input.value = d.toISOString().substring(0, 10);
+
+      const buttons = document.querySelectorAll('#validityPresetButtons .valid-btn');
+      if (days === 7 && buttons[0]) buttons[0].className = 'valid-btn px-1.5 py-0.5 bg-indigo-600 text-white rounded border border-indigo-500 font-semibold';
+      if (days === 14 && buttons[1]) buttons[1].className = 'valid-btn px-1.5 py-0.5 bg-indigo-600 text-white rounded border border-indigo-500 font-semibold';
+      if (days === 30 && buttons[2]) buttons[2].className = 'valid-btn px-1.5 py-0.5 bg-indigo-600 text-white rounded border border-indigo-500 font-semibold';
+    }
+
+    function updateAlertLivePrice() {
+      const pName = alertCurrentSelectedProduct;
+      const metric = document.getElementById('alertMetricType').value;
+      const display = document.getElementById('alertLivePriceDisplay');
+      const metricLabel = document.getElementById('alertSelectedMetricName');
+
+      const metricNames = {
+        'avg_robust_shipping': 'Ø Robust inkl. Versand',
+        'avg_market_shipping': 'Ø Markt inkl. Versand',
+        'avg_robust': 'Ø Robust ohne Versand',
+        'avg_market': 'Ø Markt ohne Versand',
+        'cheapest_1': 'Günstigstes Angebot inkl. Versand'
+      };
+
+      metricLabel.textContent = metricNames[metric] || metric;
+
+      if (!pName || globalData.length === 0) {
+        display.textContent = '-';
+        return;
+      }
+
+      const pRows = globalData.filter(d => d.product_name === pName);
+      const latest = pRows[pRows.length - 1];
+
+      if (latest && latest[metric] != null) {
+        const val = parseFloat(latest[metric]);
+        display.textContent = `${val.toFixed(2)} €`;
+      } else {
+        display.textContent = '-';
+      }
+    }
+
+    async function loadUserAlerts() {
+      const tbody = document.getElementById('activeAlertsTableBody');
+      const countBadge = document.getElementById('activeAlertsCount');
+      tbody.innerHTML = '';
+
+      if (!currentUser || !supabaseClient) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-xs text-slate-500">Bitte melde dich an, um deine aktiven Alerts einzusehen und zu verwalten.</td></tr>`;
+        countBadge.textContent = '0 aktiv';
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from('price_alerts')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error || !data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-xs text-slate-500">Aktuell keine aktiven Alerts hinterlegt.</td></tr>`;
+        countBadge.textContent = '0 aktiv';
+        return;
+      }
+
+      countBadge.textContent = `${data.length} aktiv`;
+
+      const metricLabels = {
+        'avg_robust_shipping': 'Ø Robust (inkl. Versand)',
+        'avg_market_shipping': 'Ø Markt (inkl. Versand)',
+        'avg_robust': 'Ø Robust (ohne Versand)',
+        'avg_market': 'Ø Markt (ohne Versand)',
+        'cheapest_1': 'Günstigstes Angebot'
+      };
+
+      data.forEach(alertItem => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-800/40 transition';
+        const condSign = alertItem.trigger_condition === 'above' ? '≥' : '≤';
+
+        const pRows = globalData.filter(d => d.product_name === alertItem.product_name);
+        const latest = pRows[pRows.length - 1];
+        const curVal = (latest && latest[alertItem.metric_type] != null) ? parseFloat(latest[alertItem.metric_type]) : null;
+        
+        let isMet = false;
+        if (curVal !== null) {
+          if (alertItem.trigger_condition === 'below' && curVal <= alertItem.target_price) isMet = true;
+          if (alertItem.trigger_condition === 'above' && curVal >= alertItem.target_price) isMet = true;
+        }
+
+        const curValDisplay = curVal !== null 
+          ? `<span class="${isMet ? 'text-emerald-400 font-bold' : 'text-slate-200 font-medium'}">${curVal.toFixed(2)} € ${isMet ? '🎯' : ''}</span>`
+          : '<span class="text-slate-500">-</span>';
+
+        tr.innerHTML = `
+          <td class="p-3 font-medium text-white">${alertItem.product_name}</td>
+          <td class="p-3 text-xs text-slate-400">${metricLabels[alertItem.metric_type] || alertItem.metric_type}</td>
+          <td class="p-3 font-bold text-indigo-400">${condSign} ${parseFloat(alertItem.target_price).toFixed(2)} €</td>
+          <td class="p-3">${curValDisplay}</td>
+          <td class="p-3 text-xs text-slate-400 font-mono">${alertItem.telegram_chat_id}</td>
+          <td class="p-3 text-xs text-slate-300">${formatDateGerman(alertItem.valid_until, false)}</td>
+          <td class="p-3 text-center">
+            <button onclick="deleteAlert('${alertItem.id}')" title="Alert löschen" class="p-1.5 bg-rose-950/60 hover:bg-rose-900 text-rose-300 rounded-lg transition border border-rose-800">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function handleCreateAlert(e) {
+      e.preventDefault();
+      const statusBox = document.getElementById('alertFormStatus');
+      const submitBtn = document.getElementById('createAlertSubmitBtn');
+
+      if (!currentUser || !supabaseClient) {
+        statusBox.textContent = '⚠️ Bitte melde dich zuerst an, um Alerts zu aktivieren!';
+        statusBox.className = 'text-xs p-2.5 rounded-lg bg-amber-950 text-amber-300 border border-amber-800';
+        return;
+      }
+
+      const product_name = alertCurrentSelectedProduct;
+      const telegram_chat_id = document.getElementById('alertTelegramChatId').value.trim();
+      const metric_type = document.getElementById('alertMetricType').value;
+      const trigger_condition = document.getElementById('alertCondition').value;
+      const target_price = parseFloat(document.getElementById('alertTargetPrice').value);
+      const valid_until = document.getElementById('alertValidUntil').value;
+
+      if (!product_name) {
+        statusBox.textContent = '⚠️ Bitte wähle einen Artikel aus.';
+        statusBox.className = 'text-xs p-2.5 rounded-lg bg-rose-950 text-rose-300 border border-rose-800';
+        return;
+      }
+
+      if (!telegram_chat_id) {
+        statusBox.textContent = '⚠️ Bitte gib deine Telegram Chat-ID ein.';
+        statusBox.className = 'text-xs p-2.5 rounded-lg bg-rose-950 text-rose-300 border border-rose-800';
+        return;
+      }
+
+      persistTelegramChatId(telegram_chat_id);
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Speichere...';
+
+      try {
+        const { error } = await supabaseClient.from('price_alerts').insert([{
+          user_id: currentUser.id,
+          product_name,
+          telegram_chat_id,
+          metric_type,
+          trigger_condition,
+          target_price,
+          valid_until,
+          is_active: true
+        }]);
+
+        if (error) throw error;
+
+        statusBox.textContent = '✅ Preis-Alert erfolgreich aktiviert!';
+        statusBox.className = 'text-xs p-2.5 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-800';
+        document.getElementById('alertTargetPrice').value = '';
+        loadUserAlerts();
+      } catch (err) {
+        statusBox.textContent = `⚠️ Fehler beim Erstellen: ${err.message}`;
+        statusBox.className = 'text-xs p-2.5 rounded-lg bg-rose-950 text-rose-300 border border-rose-800';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>🔔</span> Alert aktivieren';
+      }
+    }
+
+    async function deleteAlert(alertId) {
+      if (!confirm('Möchtest du diesen Alert wirklich löschen?')) return;
+      if (currentUser && supabaseClient) {
+        await supabaseClient.from('price_alerts').delete().eq('id', alertId);
+        loadUserAlerts();
+      }
+    }
+
+    function roundNum(val, dec) {
+      return Number(Math.round(val + 'e' + dec) + 'e-' + dec);
+    }
+
+    function findClosestPortRecord(data, targetTime) {
+      if (data.length < 2) return null;
+      let closest = null, minDiff = Infinity;
+      for (const row of data) {
+        const rowTime = new Date(row.timestamp.replace(' ', 'T')).getTime();
+        const diff = Math.abs(rowTime - targetTime);
+        if (diff < minDiff) { minDiff = diff; closest = row; }
+      }
+      return closest;
+    }
+
+    function setPortTimeRange(range) {
+      portCurrentTimeRange = range;
+      document.querySelectorAll('#portTimeFilterButtons .port-time-btn').forEach(btn => {
+        if (btn.dataset.range === range) {
+          btn.className = 'port-time-btn px-2.5 py-1 rounded-lg transition bg-indigo-600 text-white shadow-sm';
+        } else {
+          btn.className = 'port-time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white';
+        }
+      });
+      updatePortfolioDashboard();
+    }
+
+    function filterPortHistoryByTimeRange(data, range) {
+      if (range === 'all' || data.length === 0) return data;
+      const latest = data[data.length - 1];
+      const latestTime = new Date(latest.timestamp.replace(' ', 'T')).getTime();
+      let startTime = 0;
+      const msDay = 24 * 60 * 60 * 1000;
+
+      if (range === '7d') startTime = latestTime - 7 * msDay;
+      else if (range === '30d') startTime = latestTime - 30 * msDay;
+      else if (range === '6m') startTime = latestTime - 180 * msDay;
+      else if (range === '12m') startTime = latestTime - 365 * msDay;
+      else if (range === 'ytd') {
+        const latestDate = new Date(latest.timestamp.replace(' ', 'T'));
+        startTime = new Date(Date.UTC(latestDate.getUTCFullYear(), 0, 1, 0, 0, 0)).getTime();
+      }
+      return data.filter(d => new Date(d.timestamp.replace(' ', 'T')).getTime() >= startTime);
+    }
+
+    function renderPortfolioChart(data) {
+      const ctx = document.getElementById('portfolioChart').getContext('2d');
+      const labels = data.map(d => formatDateGerman(d.timestamp, false));
+      const pctValues = data.map(d => d.roi_pct);
+
+      if (portfolioChartInstance) {
+        portfolioChartInstance.destroy();
+      }
+
+      portfolioChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Rendite (%)',
+            data: pctValues,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.08)',
+            fill: true,
+            tension: 0.3,
+            borderWidth: 3,
+            pointRadius: 2,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          onHover: (e, activeElements) => {
+            const badge = document.getElementById('portChartCurValBadge');
+            if (activeElements && activeElements.length > 0) {
+              const idx = activeElements[0].index;
+              const item = data[idx];
+              if (item && badge) {
+                badge.textContent = `${item.total_value.toFixed(2)} €`;
+              }
+            } else {
+              if (badge) badge.textContent = `${portLatestTotalValue.toFixed(2)} €`;
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#020617',
+              borderColor: '#334155',
+              borderWidth: 1.5,
+              padding: 16,
+              cornerRadius: 12,
+              titleFont: { size: 16, weight: 'bold' },
+              titleColor: '#ffffff',
+              bodyFont: { size: 14.5, weight: '500' },
+              bodySpacing: 8,
+              callbacks: {
+                title: function(items) {
+                  const idx = items[0].dataIndex;
+                  return `📅 Datum: ${formatDateGerman(data[idx].timestamp, false)}`;
+                },
+                label: function(context) {
+                  const item = data[context.dataIndex];
+                  const sign = item.roi_pct >= 0 ? '+' : '';
+                  const diff = item.total_value - item.invested;
+                  const diffSign = diff >= 0 ? '+' : '';
+                  const roiEmoji = item.roi_pct >= 0 ? '📈' : '📉';
+                  
+                  return [
+                    `${roiEmoji} Rendite: ${sign}${item.roi_pct.toFixed(2)} % (${diffSign}${diff.toFixed(2)} €)`,
+                    `💼 Portfoliowert: ${item.total_value.toFixed(2)} €`,
+                    `💰 Investiert: ${item.invested.toFixed(2)} €`
+                  ];
+                },
+                labelTextColor: function(context) {
+                  return '#ffffff';
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', maxTicksLimit: 10 } },
+            y: {
+              grid: { color: '#1e293b' },
+              ticks: {
+                color: '#10b981',
+                callback: val => (val >= 0 ? `+${val}%` : `${val}%`)
+              }
+            }
+          }
+        }
+      });
+    }
+
+    async function loadData() {
+      await initAuth();
+
+      try {
+        const confRes = await fetch('config.json?v=' + new Date().getTime());
+        if (confRes.ok) {
+          const conf = await confRes.json();
+          configProducts = conf.products || [];
+        }
+      } catch (e) {
+        console.warn('Konnte config.json nicht direkt laden', e);
+      }
+
+      const csvPath = 'data/data.csv?v=' + new Date().getTime();
+      Papa.parse(csvPath, {
+        download: true,
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          globalData = results.data.filter(row => row.product_name && row.timestamp);
+          initSearchableDropdown();
+          renderPortfolioTable();
+          updatePortfolioDashboard();
+          renderPortfolioAnalysis();
+        }
+      });
+    }
+
+    function initSearchableDropdown() {
+      const products = [...new Set(globalData.map(item => item.product_name))].sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
+      renderDropdownItems(products);
+      if (products.length > 0) selectProduct(products[0]);
+    }
+
+    function renderDropdownItems(products) {
+      const listContainer = document.getElementById('dropdownList');
+      listContainer.innerHTML = '';
+      if (products.length === 0) {
+        listContainer.innerHTML = '<div class="text-sm text-slate-500 p-3 text-center">Kein Artikel gefunden</div>';
+        return;
+      }
+      products.forEach(p => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `w-full text-left px-3.5 py-2.5 rounded-xl text-sm md:text-[15px] transition flex items-center justify-between ${
+          p === currentSelectedProduct ? 'bg-indigo-600 text-white font-semibold shadow-md' : 'text-slate-200 hover:bg-slate-800'
+        }`;
+        btn.innerHTML = `<span class="truncate">${p}</span>`;
+        btn.onclick = () => { selectProduct(p); toggleDropdown(false); };
+        listContainer.appendChild(btn);
+      });
+    }
+
+    function filterDropdownList() {
+      const query = document.getElementById('productSearchInput').value.toLowerCase();
+      const products = [...new Set(globalData.map(item => item.product_name))].sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
+      renderDropdownItems(products.filter(p => p.toLowerCase().includes(query)));
+    }
+
+    function toggleDropdown(forceState = null) {
+      const menu = document.getElementById('dropdownMenu');
+      const shouldOpen = forceState !== null ? forceState : menu.classList.contains('hidden');
+      if (shouldOpen) {
+        menu.classList.remove('hidden');
+        document.getElementById('productSearchInput').focus();
+      } else {
+        menu.classList.add('hidden');
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      const wrapper = document.getElementById('searchDropdownWrapper');
+      if (wrapper && !wrapper.contains(e.target)) toggleDropdown(false);
+    });
+
+    function selectProduct(productName) {
+      currentSelectedProduct = productName;
+      document.getElementById('selectedProductText').textContent = productName;
+      document.getElementById('productSearchInput').value = '';
+      filterDropdownList();
+      updateDashboard(productName);
+    }
+
+    function setTimeRange(range) {
+      currentTimeRange = range;
+      document.querySelectorAll('#timeFilterButtons .time-btn').forEach(btn => {
+        if (btn.dataset.range === range) {
+          btn.className = 'time-btn px-2.5 py-1 rounded-lg transition bg-indigo-600 text-white shadow-sm';
+        } else {
+          btn.className = 'time-btn px-2.5 py-1 rounded-lg transition text-slate-400 hover:text-white';
+        }
+      });
+      if (currentSelectedProduct) updateDashboard(currentSelectedProduct);
+    }
+
+    function setCalcMode(mode) {
+      currentCalcMode = mode;
+      const btnH = document.getElementById('calcBtn-history');
+      const btnA = document.getElementById('calcBtn-adjusted');
+      if (mode === 'history') {
+        btnH.className = 'px-2 py-1 rounded-lg bg-indigo-600 text-white shadow-sm transition';
+        btnA.className = 'px-2 py-1 rounded-lg text-slate-400 hover:text-white transition';
+      } else {
+        btnA.className = 'px-2 py-1 rounded-lg bg-indigo-600 text-white shadow-sm transition';
+        btnH.className = 'px-2 py-1 rounded-lg text-slate-400 hover:text-white transition';
+      }
+      if (currentSelectedProduct) updateDashboard(currentSelectedProduct);
+    }
+
+    async function promoteToRare() {
+      const token = localStorage.getItem('gh_pat');
+      if (!token) {
+        alert('Bitte trage im Tab "Artikel hinzufügen" zuerst deinen GitHub PAT ein.');
+        openModal();
+        return;
+      }
+      if (!confirm(`Möchtest du "${currentSelectedProduct}" in der config.json dauerhaft als "single_rare" einstufen?`)) return;
+
+      try {
+        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${CONFIG_FILE}`;
+        const getRes = await fetch(apiUrl, { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' } });
+        if (!getRes.ok) throw new Error('Konnte config.json nicht laden.');
+
+        const fileData = await getRes.json();
+        const jsonString = b64_to_utf8(fileData.content.replace(/\s/g, ''));
+        const currentContent = JSON.parse
