@@ -51,31 +51,45 @@ def login_and_verify():
 
     print(f"🔑 Starte Login-Prozess für Benutzer '{CM_USERNAME}'...")
 
-    # 1. Login-Seite aufrufen (Cloudflare lösen & CSRF Token holen)
-    get_payload = {
-        "cmd": "request.get",
-        "url": "https://www.cardmarket.com/de/Pokemon/Login",
-        "session": SESSION_ID,
-        "maxTimeout": 60000
-    }
-    try:
-        res = requests.post(FLARESOLVERR_URL, json=get_payload, timeout=70).json()
-        html = res.get("solution", {}).get("response", "")
-    except Exception as e:
-        print(f"❌ Fehler beim Laden der Login-Seite: {e}")
-        sys.exit(1)
+    # 1. Login-Seite abrufen (mit Retry-Schleife für Cloudflare Turnstile)
+    html = ""
+    cmtkn_val = None
 
-    soup = BeautifulSoup(html, "html.parser")
-    token_input = soup.select_one("input[name='__cmtkn']")
-    cmtkn_val = token_input.get("value") if token_input else None
+    for attempt in range(1, 4):
+        print(f"   Lade Login-Seite (Versuch {attempt}/3)...")
+        get_payload = {
+            "cmd": "request.get",
+            "url": "https://www.cardmarket.com/de/Pokemon/Login",
+            "session": SESSION_ID,
+            "maxTimeout": 60000
+        }
+        try:
+            res = requests.post(FLARESOLVERR_URL, json=get_payload, timeout=70).json()
+            html = res.get("solution", {}).get("response", "")
+        except Exception as e:
+            print(f"   ⚠️ Request-Fehler: {e}")
+            time.sleep(3)
+            continue
 
-    if not cmtkn_val:
+        soup = BeautifulSoup(html, "html.parser")
+        token_input = soup.select_one("input[name='__cmtkn']")
+        if token_input and token_input.get("value"):
+            cmtkn_val = token_input.get("value")
+            break
+
         match = re.search(r'name=["\']__cmtkn["\']\s+value=["\']([^"\']+)["\']', html)
         if match:
             cmtkn_val = match.group(1)
+            break
+
+        print("   ⏳ Formular noch nicht bereit, warte kurz...")
+        time.sleep(4)
 
     if not cmtkn_val:
-        print("❌ CSRF-Token (__cmtkn) konnte nicht von der Login-Seite extrahiert werden.")
+        # Debug-Info im Fehlerfall
+        title_match = re.search(r'<title>(.*?)</title>', html, re.I)
+        title_text = title_match.group(1) if title_match else "Kein Titel"
+        print(f"❌ CSRF-Token (__cmtkn) nicht gefunden. Geladene Seite: '{title_text}'")
         sys.exit(1)
 
     # 2. Login POST absenden
@@ -106,7 +120,7 @@ def login_and_verify():
         print(f"❌ Login POST Request fehlgeschlagen: {e}")
         sys.exit(1)
 
-    # 3. Verifikation: Sind wir wirklich eingeloggt?
+    # 3. Verifikation
     print("🔍 Überprüfe Login-Status auf Cardmarket...")
     verify_payload = {
         "cmd": "request.get",
@@ -122,7 +136,6 @@ def login_and_verify():
         print(f"❌ Verifikationsabruf fehlgeschlagen: {e}")
         sys.exit(1)
 
-    # Prüfung auf Authentifizierungsmerkmale
     is_authenticated = (
         (CM_USERNAME and CM_USERNAME.lower() in verify_html.lower()) or
         "Logout" in verify_html or
@@ -133,8 +146,7 @@ def login_and_verify():
     if is_authenticated:
         print(f"✅ LOGIN ERFOLGREICH BESTÄTIGT! Angemeldet als '{CM_USERNAME}'.")
     else:
-        print("❌ LOGIN FEHLGESCHLAGEN! Weder Benutzername noch Abmelde-Status im HTML gefunden.")
-        print("⚠️ Breche Scraping-Prozess ab, um fehlerhafte Daten ohne Versandkosten zu verhindern.")
+        print("❌ LOGIN FEHLGESCHLAGEN! Session nicht als angemeldet erkannt.")
         sys.exit(1)
 
 
