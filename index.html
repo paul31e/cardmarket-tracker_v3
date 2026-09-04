@@ -2047,7 +2047,7 @@ function formatRoiDelta(curVal, curInvested, pastRow) {
       document.getElementById('statPriceATL').innerHTML = rowPriceATL ? `📉 ATL: ${priceATL.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowPriceATL.timestamp, true)})</span>` : '-';
       document.getElementById('statPriceATH').innerHTML = rowPriceATH ? `📈 ATH: ${priceATH.toFixed(2)} € <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowPriceATH.timestamp, true)})</span>` : '-';
       document.getElementById('statAvailMin').innerHTML = rowAvailMin ? `📉 ATL: ${availMin} Stk. <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowAvailMin.timestamp, true)})</span>` : '-';
-      document.getElementById('statAvailMax').innerHTML = rowAvailMax ? `📈 ATH: ${availMax} Stk. <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowAvailMin.timestamp, true)})</span>` : '-';
+      document.getElementById('statAvailMax').innerHTML = rowAvailMax ? `📈 ATH: ${availMax} Stk. <span class="text-[11px] text-slate-300 font-medium">(${formatDateGerman(rowAvailMax.timestamp, true)})</span>` : '-';
 
       const latestTime = new Date(latest.timestamp.replace(' ', 'T')).getTime();
       const msDay = 24 * 60 * 60 * 1000;
