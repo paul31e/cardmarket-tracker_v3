@@ -8,7 +8,6 @@ import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 import time
-```[cite: 3]
 
 CSV_PATH = "data/data.csv"
 CONFIG_PATH = "config.json"
